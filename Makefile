@@ -1,19 +1,52 @@
-CFLAGS=-O3 --std=gnu99 -Wall
-.PHONY: target grind push
+OPTIM = -O3 -Wall
+CFLAGS = $(OPTIM) --std=gnu99 -I../blt
+CCFLAGS = $(OPTIM)
+CC = gcc
+CCC = g++
 
-target: grizzly suds
+%.o: %.c
+	$(CC) $(CFLAGS) -c -o $@ $^
+%.o: ../blt/%.c
+	$(CC) $(CFLAGS) -c -o $@ $^
+%.o: %.cpp
+	$(CCC) $(CCFLAGS) -c -o $@ $^
 
-grizzly: grizzly.c dlx.c
-	$(CC) $(CFLAGS) -o $@ $^ -I ../blt ../blt/blt.c
+# -------------------------------------------------------------
 
-suds: suds.c dlx.c
-	$(CC) $(CFLAGS) -o $@ $^ -I ../blt ../blt/blt.c
+TARGETS = tiles dlx_raw grizzly suds
 
-dlx_test: dlx_test.c dlx.c
-	cc -g --std=gnu99 -Wall -o $@ $^
+all: $(TARGETS)
+
+grizzly: grizzly.o dlx.o blt.o
+	$(CC) $(CFLAGS) -o $@ $^
+
+suds: suds.o dlx.o blt.o
+	$(CC) $(CFLAGS) -o $@ $^
+
+dlx_raw: dlx_raw.o dlx.o blt.o
+	$(CC) $(CFLAGS) -o $@ $^
+
+tiles: tiles_main.o tiles_dlx.o dlx.o tiles_pent.o tiles_help.o
+	$(CCC) $(CCFLAGS) -o $@ $^
+
+tiles_pent.c: tile/pent.tiles
+	bin2c pentominos < tile/pent.tiles > $@
+
+tiles_help.c: tiles_help.txt
+	bin2c help < tiles_help.txt > $@
+
+dlx_test: dlx_test.o dlx.o
+	$(CC) $(CFLAGS) -o $@ $^
+
+# -------------------------------------------------------------
+
+.PHONY: all grind push clean
 
 grind: dlx_test
 	valgrind ./dlx_test
 
 push:
 	git push git@github.com:blynn/dlx.git master
+
+clean:
+	rm -f $(TARGETS) *.o tiles_pent.c
