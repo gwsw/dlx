@@ -49,4 +49,4 @@ push:
 	git push git@github.com:blynn/dlx.git master
 
 clean:
-	rm -f $(TARGETS) *.o tiles_pent.c
+	rm -f $(TARGETS) *.o tiles_pent.c tiles_help.c
