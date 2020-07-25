@@ -1,0 +1,245 @@
+tile A
+*
+**
+***
+end
+
+tile B
+.**
+.*
+**
+.*
+end
+
+tile C
+**
+*
+*
+**
+end
+
+tile D
+*
+**
+**
+*
+end
+
+tile E
+.**
+**
+.**
+end
+
+tile F
+.**
+**
+.*
+.*
+end
+
+tile G
+**
+*
+**
+.*
+end
+
+tile H
+*
+***
+*.*
+end
+
+tile I
+*
+*
+*
+*
+*
+*
+end
+
+tile J
+..*
+*.*
+***
+end
+
+tile K
+.*
+***
+**
+end
+
+tile L
+*
+*
+*
+*
+**
+end
+
+tile M
+.**
+.*
+**
+*
+end
+
+tile N
+.*
+**
+*
+*
+*
+end
+
+tile O
+**
+**
+**
+end
+
+tile P
+**
+**
+*
+*
+end
+
+tile Q
+**
+**
+.**
+end
+
+tile R
+**
+***
+*
+end
+
+tile S
+*
+*
+**
+.*
+.*
+end
+
+tile T
+***
+.*
+.*
+.*
+end
+
+tile U
+*.*
+****
+end
+
+tile V
+*
+*
+****
+end
+
+tile W
+*
+**
+.***
+end
+
+tile X
+.*
+***
+.*
+.*
+end
+
+tile Y
+.*
+**
+.*
+.*
+.*
+end
+
+tile Z
+**
+.*
+.***
+end
+
+tile 2
+.*
+**
+**
+*
+end
+
+tile 3
+*
+*
+***
+.*
+end
+
+tile 4
+*
+***
+.*
+.*
+end
+
+tile 5
+*
+**
+**
+.*
+end
+
+tile 6
+.*
+**
+.**
+.*
+end
+
+tile 7
+****
+.*
+.*
+end
+
+tile 8
+*
+**
+.**
+..*
+end
+
+tile 9
+.*
+.*
+**
+.*
+.*
+end
+
+tile $
+*
+**
+.**
+.*
+end
+
+tile %
+**
+.*
+.*
+.**
+end
+

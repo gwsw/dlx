@@ -1,0 +1,79 @@
+# The 12 pentominos
+
+#reverse lcase
+
+tile F
+.**
+**
+.*
+end
+
+tile I
+*
+*
+*
+*
+*
+end
+
+tile L
+*
+*
+*
+**
+end
+
+tile N
+.*
+**
+*
+*
+end
+
+tile P
+**
+**
+*
+end
+
+tile T
+***
+.*
+.*
+end
+
+tile U
+*.*
+***
+end
+
+tile V
+*
+*
+***
+end
+
+tile W
+*
+**
+.**
+end
+
+tile X
+.*
+***
+.*
+end
+
+tile Y
+*
+**
+*
+*
+end
+
+tile Z
+**
+.*
+.**
+end
