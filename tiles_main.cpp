@@ -4,7 +4,7 @@
 #include "tiles.h"
 #include "linereader.h"
 
-extern void print_solns(Board const& board, Tile::Set const& tiles, bool desc, bool vis, bool print_space, bool rotref);
+extern void print_solns(Board const& board, Tile::Set const& tiles, bool desc, bool vis, bool print_space, bool no_rev_name, bool rotref);
 extern const char pentominos[];
 extern const char help[];
 
@@ -19,6 +19,7 @@ static int usage(bool more_info = true)
     printf("       -s = print extra spaces in description for alignment\n");
     printf("       -r = suppress rotations and reflections\n");
     printf("       -p = use pentomino tiles\n");
+    printf("       -u = use standard name for reversed tiles\n");
     printf("       tiles is a file containing one or more tile descriptions\n");
     printf("       board is either a file containing a board description,\n");
     printf("                or \"NxM\" (integer N,M) for a rectangular board\n");
@@ -99,6 +100,7 @@ int main(int argc, char* argv[])
     bool desc = false;
     bool print_space = false;
     bool rotref = true;
+    bool no_rev_name = false;
 
     if (argc > 1 && (strcmp(argv[1], "help") == 0 || strcmp(argv[1], "--help") == 0)) {
         (void) usage(false);
@@ -107,13 +109,14 @@ int main(int argc, char* argv[])
     }
 
     int opt;
-    while ((opt = getopt(argc, argv, "lprst:vV")) != -1) {
+    while ((opt = getopt(argc, argv, "lprst:uvV")) != -1) {
         switch (opt) {
         case 'l': desc = true; break;
         case 'p': tile_desc = pentominos; break;
         case 'r': rotref = false; break;
         case 's': print_space = true; break;
         case 't': tile_file = optarg; break;
+        case 'u': no_rev_name = true; break;
         case 'v': vis = true; break;
         case 'V': ++verbose; break;
         default: return usage();
@@ -136,6 +139,6 @@ int main(int argc, char* argv[])
     if (!setup_tiles(tiles, tile_file, tile_desc))
         return 1;
 
-    print_solns(*board.get(), tiles, desc, vis, print_space, rotref);
+    print_solns(*board.get(), tiles, desc, vis, print_space, no_rev_name, rotref);
     return 0;
 }

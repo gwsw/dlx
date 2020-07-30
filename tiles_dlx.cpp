@@ -103,7 +103,7 @@ static void print_soln(int row[], int n)
 }
 
 // ----------------------------------------------------------------
-void print_solns(Board const& board, Tile::Set const& tiles, bool desc, bool vis, bool print_space, bool rotref)
+void print_solns(Board const& board, Tile::Set const& tiles, bool desc, bool vis, bool print_space, bool no_rev_name, bool rotref)
 {
     if (all_tiles_size(tiles) != board.size())
         return;
@@ -114,7 +114,6 @@ void print_solns(Board const& board, Tile::Set const& tiles, bool desc, bool vis
     int tile_num = 0;
     for (auto tile : tiles) {
         auto orients = tile->all_orientations();
-        char tile_char = tile->name()[0];
         for (auto orient : orients) {
             // Place tile shape at every possible px,py on board
             // and make a dlx row for each such position.
@@ -123,6 +122,7 @@ void print_solns(Board const& board, Tile::Set const& tiles, bool desc, bool vis
             for (Cell::Coord py = 0; py <= board.height() - orient->height(); ++py)
             for (Cell::Coord px = 0; px <= board.width() - orient->width(); ++px) {
                 if (create_dlx_row(dlx, dlx_row, board, px, py, tile_num, orient)) {
+                    char tile_char = no_rev_name ? tile->name()[0] : orient->name()[0];
                     PI.tile_pos_list.push_back(PrintInfo::TilePos(orient, px, py, tile_char));
                     ++dlx_row;
                 }
