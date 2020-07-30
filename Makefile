@@ -1,8 +1,9 @@
 OPTIM = -O3 -Wall
 CFLAGS = $(OPTIM) --std=gnu99 -I../blt
-CCFLAGS = $(OPTIM)
+CCFLAGS = $(OPTIM) --std=c++11
 CC = gcc
 CCC = g++
+BIN2C = ./bin2c
 
 %.o: %.c
 	$(CC) $(CFLAGS) -c -o $@ $^
@@ -30,10 +31,10 @@ tiles: tiles_main.o tiles_dlx.o dlx.o tiles_pent.o tiles_help.o
 	$(CCC) $(CCFLAGS) -o $@ $^
 
 tiles_pent.c: tile/pent.tiles
-	bin2c pentominos < tile/pent.tiles > $@
+	$(BIN2C) pentominos < tile/pent.tiles > $@
 
 tiles_help.c: tiles_help.txt
-	bin2c help < tiles_help.txt > $@
+	$(BIN2C) help < tiles_help.txt > $@
 
 dlx_test: dlx_test.o dlx.o
 	$(CC) $(CFLAGS) -o $@ $^

@@ -4,7 +4,7 @@
 #include "tiles.h"
 #include "linereader.h"
 
-extern void print_solns(Board const& board, Tile::Set const& tiles, bool desc, bool vis, bool print_space);
+extern void print_solns(Board const& board, Tile::Set const& tiles, bool desc, bool vis, bool print_space, bool rotref);
 extern const char pentominos[];
 extern const char help[];
 
@@ -17,6 +17,7 @@ static int usage(bool more_info = true)
     printf("       -v = print ASCII picture for each solution\n");
     printf("       -l = print list of tiles for each solution\n");
     printf("       -s = print extra spaces in description for alignment\n");
+    printf("       -r = suppress rotations and reflections\n");
     printf("       -p = use pentomino tiles\n");
     printf("       tiles is a file containing one or more tile descriptions\n");
     printf("       board is either a file containing a board description,\n");
@@ -63,14 +64,14 @@ static bool parse_tiles(LineReader& rd, Tile::Set& tiles)
 }
 
 // ----------------------------------------------------------------
-static bool setup_tiles(Tile::Set& tiles, std::string const& tile_file, bool pent)
+static bool setup_tiles(Tile::Set& tiles, std::string const& tile_file, std::string const& tile_desc)
 {
     bool ok = false;
     if (tile_file.empty()) {
-        if (!pent) {
+        if (tile_desc.empty()) {
             fprintf(stderr, "error: no tile description\n");
         } else {
-            StringLineReader rd (pentominos);
+            StringLineReader rd (tile_desc);
             ok = parse_tiles(rd, tiles);
             if (!ok) fprintf(stderr, "internal error!\n");
         }
@@ -92,14 +93,12 @@ static bool setup_tiles(Tile::Set& tiles, std::string const& tile_file, bool pen
 int main(int argc, char* argv[])
 {
     std::string tile_file;
+    std::string tile_desc;
     std::string board_file;
     bool vis = false;
     bool desc = false;
     bool print_space = false;
-
-    char const* slash = strrchr(argv[0], '/');
-    char const* pgm = (slash == nullptr) ? argv[0] : slash+1;
-    bool pent = (strcmp(pgm, "pent") == 0);
+    bool rotref = true;
 
     if (argc > 1 && (strcmp(argv[1], "help") == 0 || strcmp(argv[1], "--help") == 0)) {
         (void) usage(false);
@@ -108,10 +107,11 @@ int main(int argc, char* argv[])
     }
 
     int opt;
-    while ((opt = getopt(argc, argv, "lpst:vV")) != -1) {
+    while ((opt = getopt(argc, argv, "lprst:vV")) != -1) {
         switch (opt) {
         case 'l': desc = true; break;
-        case 'p': pent = true; break;
+        case 'p': tile_desc = pentominos; break;
+        case 'r': rotref = false; break;
         case 's': print_space = true; break;
         case 't': tile_file = optarg; break;
         case 'v': vis = true; break;
@@ -133,9 +133,9 @@ int main(int argc, char* argv[])
         return usage();
 
     Tile::Set tiles;
-    if (!setup_tiles(tiles, tile_file, pent))
+    if (!setup_tiles(tiles, tile_file, tile_desc))
         return 1;
 
-    print_solns(*board.get(), tiles, desc, vis, print_space);
+    print_solns(*board.get(), tiles, desc, vis, print_space, rotref);
     return 0;
 }

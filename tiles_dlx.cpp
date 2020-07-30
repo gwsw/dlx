@@ -24,6 +24,7 @@ struct PrintInfo {
     Cell::Coord visu_width;
     Cell::Coord visu_height;
     bool print_desc;
+    bool rotref;
     int sp_name;
     int sp_coord;
 };
@@ -71,7 +72,16 @@ static size_t all_tiles_size(Tile::Set const& tiles)
 }
 
 // ----------------------------------------------------------------
-static void print_soln(int row[], int n) {
+static bool is_rotref(int row[], int n)
+{
+    return false; // FIXME
+}
+
+// ----------------------------------------------------------------
+static void print_soln(int row[], int n)
+{
+    if (!PI.rotref && is_rotref(row, n))
+        return;
     std::vector<char> visu (PI.visu_width * PI.visu_height);
     memset(visu.data(), '.', visu.size());
     for (int i = 0; i < n; ++i) {
@@ -93,7 +103,7 @@ static void print_soln(int row[], int n) {
 }
 
 // ----------------------------------------------------------------
-void print_solns(Board const& board, Tile::Set const& tiles, bool desc, bool vis, bool print_space)
+void print_solns(Board const& board, Tile::Set const& tiles, bool desc, bool vis, bool print_space, bool rotref)
 {
     if (all_tiles_size(tiles) != board.size())
         return;
@@ -126,6 +136,7 @@ void print_solns(Board const& board, Tile::Set const& tiles, bool desc, bool vis
     PI.sp_name = print_space ? 3 : 0;
     PI.sp_coord = print_space ? 2 : 0;
     PI.print_desc = desc;
+    PI.rotref = rotref;
 
     dlx_forall_cover(dlx, print_soln);
     dlx_clear(dlx);
