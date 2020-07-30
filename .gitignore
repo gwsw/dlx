@@ -1,0 +1,7 @@
+*.o
+tiles_help.c
+tiles_pent.c
+dlx_raw
+grizzly
+suds
+tiles
