@@ -1,0 +1,12 @@
+#!/usr/bin/perl
+use strict;
+
+my $skipsp = 1;
+while (<>) {
+    my $blank = /^\s*$/;
+    $skipsp = 0 if $skipsp and not $blank;
+    if (not $skipsp) {
+        last if $blank;
+        print;
+    }
+}

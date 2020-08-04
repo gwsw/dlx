@@ -1,0 +1,9 @@
+#!/bin/sh
+
+# Summarize ring solutions and print one example of each.
+
+for f in ring-sols/*; do
+    o=$(./pickone $f)
+    n=$(tail -1 $f | sed 's/ .*//')
+    if [ $n -gt 0 ]; then echo "$n solutions"; echo "$o"; echo; fi
+done

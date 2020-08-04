@@ -1,0 +1,84 @@
+#!/usr/bin/perl
+use strict;
+use Getopt::Std;
+
+# Find and solve all pentomino tilings where the board 
+# is a rectangle with one centered rectangular hole.
+# Leaves boards in $board_dir and complete solutions in $sol_dir.
+
+my $usage = "usage: $0 [-qv] [-b board-dir] [-s sol-dir]";
+
+my $min_size = 7;
+my $max_size = 20;
+my $pent_area = 60;
+my $board_dir = 'ring-boards';
+my $sol_dir = 'ring-sols';
+my $tiles = '../tiles';
+
+main();
+sub main {
+    my %opt;
+    die "$usage\n" if not getopts('b:s:qv', \%opt);
+    $board_dir = $opt{b} if $opt{b};
+    $sol_dir = $opt{s} if $opt{s};
+    my $item = 1;
+    mkdir $board_dir;
+    mkdir $sol_dir;
+    for (my $ox = $min_size; $ox <= $max_size; ++$ox) {
+    for (my $oy = $min_size; $oy <= $max_size; ++$oy) {
+        for (my $ix = 1; $ix <= $ox-2; ++$ix) {
+        for (my $iy = 1; $iy <= $oy-2; ++$iy) {
+            if ($ox*$oy - $ix*$iy == $pent_area) {
+                my $board_file = "$board_dir/$item";
+                my $sol_file = "$sol_dir/$item";
+                mkboard($board_file, $ox, $oy, $ix, $iy);
+                my $solutions = mksol($board_file, $sol_file);
+                if ($solutions > 0) {
+                    ++$item;
+                    if ($opt{v}) {
+                        printf "%2d. %-5s - %-5s : %5d solutions\n", 
+                            $item, $ox.'x'.$oy, $ix.'x'.$iy, $solutions;
+                    } elsif (not $opt{q}) {
+                        print '.';
+                    }
+                }
+            }
+        }
+        }
+    }
+    }
+    print "\n" if not $opt{q} and not $opt{v};
+}
+
+sub mkboard {
+    my ($board_file, $ox, $oy, $ix, $iy) = @_;
+    my $dx = $ox - $ix;
+    my $dy = $oy - $iy;
+    my $top_rows = int($dy / 2);
+    my $mid_rows = $oy - $dy;
+    my $bot_rows = $oy - $top_rows - $mid_rows;
+    my $left_cols = int($dx / 2);
+    my $mid_cols = $ox - $dx;
+    my $right_cols = $ox - $left_cols - $mid_cols;
+
+    my $f;
+    die "cannot create $board_file" if not open $f, '>', $board_file;
+    for (my $r = 0; $r < $top_rows; ++$r) {
+        print $f '*' x $ox, "\n";
+    }
+    for (my $r = 0; $r < $mid_rows; ++$r) {
+        print $f '*' x $left_cols, '.' x $mid_cols, '*' x $right_cols, "\n";
+    }
+    for (my $r = 0; $r < $bot_rows; ++$r) {
+        print $f '*' x $ox, "\n";
+    }
+    close $f;
+}
+
+sub mksol {
+    my ($board_file, $sol_file) = @_;
+    system("$tiles -p '$board_file' > '$sol_file'");
+    my ($solutions) = `tail -1 '$sol_file'` =~ /^\s*(\d+) solutions/;
+    $solutions = 0 if not $solutions;
+    return $solutions;
+}
