@@ -9,6 +9,7 @@ extern "C" {
 #include "dlx.h"
 }
 
+extern int print_solns(Board const& board, Tile::Set const& tiles, bool desc, bool vis, bool print_space, bool no_rev_name, bool rotref);
 extern const char pentominos[];
 extern const char help[];
 
@@ -111,16 +112,6 @@ struct PrintInfo {
         Cell::Coord x;
         Cell::Coord y;
     };
-    void init(Cell::Coord width, Cell::Coord height, bool pr_space, bool pr_desc, bool pr_rotref) {
-        tile_pos_list.clear();
-        visu_width = width;
-        visu_height = height;
-        print_desc = pr_desc;
-        rotref = pr_rotref;
-        sp_name = pr_space ? 3 : 0;
-        sp_coord = pr_space ? 2 : 0;
-        total = 0;
-    }
     std::vector<TilePos> tile_pos_list;
     Cell::Coord visu_width;
     Cell::Coord visu_height;
@@ -244,7 +235,14 @@ int print_solns(Board const& board, Tile::Set const& tiles, bool desc, bool vis,
         ++tile_num;
     }
     // Set PrintInfo values for print_soln.
-    PI.init(vis ? board.width() : 0, vis ? board.height() : 0, print_space, desc, rotref);
+    PI.total = 0;
+    PI.visu_width = vis ? board.width() : 0;
+    PI.visu_height = vis ? board.height() : 0;
+    PI.sp_name = print_space ? 3 : 0;
+    PI.sp_coord = print_space ? 2 : 0;
+    PI.print_desc = desc;
+    PI.rotref = rotref;
+
     dlx_forall_cover(dlx, print_soln);
     dlx_clear(dlx);
     PI.tile_pos_list.clear();
