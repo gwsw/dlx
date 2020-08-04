@@ -9,7 +9,6 @@ extern "C" {
 #include "dlx.h"
 }
 
-extern int print_solns(Board const& board, Tile::Set const& tiles, bool desc, bool vis, bool print_space, bool no_rev_name, bool rotref);
 extern const char pentominos[];
 extern const char help[];
 
@@ -112,6 +111,16 @@ struct PrintInfo {
         Cell::Coord x;
         Cell::Coord y;
     };
+    void init(Cell::Coord width, Cell::Coord height, bool pr_space, bool pr_desc, bool pr_rotref) {
+        tile_pos_list.clear();
+        visu_width = width;
+        visu_height = height;
+        print_desc = pr_desc;
+        rotref = pr_rotref;
+        sp_name = pr_space ? 3 : 0;
+        sp_coord = pr_space ? 2 : 0;
+        total = 0;
+    }
     std::vector<TilePos> tile_pos_list;
     Cell::Coord visu_width;
     Cell::Coord visu_height;
@@ -139,19 +148,19 @@ static bool create_dlx_row(dlx_t dlx, int dlx_row, Board const& board, Cell::Coo
     if (verbose) printf("dlx_set %d %d # tile num %d (%s at %d,%d)\n", dlx_row, (int)board.size() + tile_num, tile_num, orient->name().c_str(), px, py);
     // Make a list of the dlx columns that should be set.
     // Don't actually set them until we're sure we are going to use this dlx row.
-    std::list<int> cols;
+    std::list<int> dlx_cols;
     for (auto cell : orient->cells()) {
         if (verbose) printf("dlx_set %d %d # board pos %d,%d\n", dlx_row, board.dlx_column(px+cell.x(), py+cell.y()), px+cell.x(), py+cell.y());
-        int col = board.dlx_column(px+cell.x(), py+cell.y());
-        if (col < 0) // tile doesn't fit here; skip this px,py
+        int dlx_col = board.dlx_column(px+cell.x(), py+cell.y());
+        if (dlx_col < 0) // tile doesn't fit here; skip this px,py
             return false;
-        cols.push_back(col);
+        dlx_cols.push_back(dlx_col);
     }
-    if (cols.empty())
+    if (dlx_cols.empty())
         return false;
     dlx_set(dlx, dlx_row, board.size() + tile_num); // tile indicator
-    for (int col : cols)
-        dlx_set(dlx, dlx_row, col); // one cell covered by this tile
+    for (int dlx_col : dlx_cols)
+        dlx_set(dlx, dlx_row, dlx_col); // one cell covered by this tile
     return true;
 }
 
@@ -235,14 +244,7 @@ int print_solns(Board const& board, Tile::Set const& tiles, bool desc, bool vis,
         ++tile_num;
     }
     // Set PrintInfo values for print_soln.
-    PI.total = 0;
-    PI.visu_width = vis ? board.width() : 0;
-    PI.visu_height = vis ? board.height() : 0;
-    PI.sp_name = print_space ? 3 : 0;
-    PI.sp_coord = print_space ? 2 : 0;
-    PI.print_desc = desc;
-    PI.rotref = rotref;
-
+    PI.init(vis ? board.width() : 0, vis ? board.height() : 0, print_space, desc, rotref);
     dlx_forall_cover(dlx, print_soln);
     dlx_clear(dlx);
     PI.tile_pos_list.clear();

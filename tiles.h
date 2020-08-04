@@ -1,5 +1,5 @@
-#ifndef _TILES_H_24957_
-#define _TILES_H_24957_
+#ifndef _TILES_H_
+#define _TILES_H_
 
 #include <list>
 #include <string>
@@ -26,7 +26,7 @@ static inline ITYPE XY(ITYPE x, ITYPE y, ITYPE w) {
 class Cell {
 public:
     typedef unsigned Coord;
-    Cell(Coord x, Coord y) : x_(x), y_(y) {}
+    explicit Cell(Coord x, Coord y) : x_(x), y_(y) {}
     Coord x() const { return x_; }
     Coord y() const { return y_; }
     bool operator==(Cell const& cell) const { return x_ == cell.x() && y_ == cell.y(); }
@@ -49,7 +49,7 @@ public:
     size_t size() const { return cells_.size(); }
 
     // Create empty shape.
-    Shape(std::string const& name) : name_(name), width_(0), height_(0) {}
+    explicit Shape(std::string const& name) : name_(name), width_(0), height_(0) {}
 
     // Copy and optionally rename existing shape.
     Shape(Shape const& shape, std::string const& name = "") :
@@ -91,7 +91,7 @@ public:
     Shape reverse(std::string const& name) const {
         Shape s (name);
         for (auto const cell : cells_)
-            s.add(cell.x(), height_-1-cell.y());
+            s.add(cell.x(), vflip(cell.y()));
         return s;
     }
 
@@ -99,13 +99,14 @@ public:
     Shape rotate90(std::string const& name) const {
         Shape s (name);
         for (auto const cell : cells_)
-            s.add(height_-1-cell.y(), cell.x());
+            s.add(vflip(cell.y()), cell.x());
         return s;
     }
 
 protected:
     void clear() { width_ = height_ = 0; cells_.clear(); }
     void name(std::string const& name) { name_ = name; }
+    Coord vflip(Coord y) const { return height_ - y - 1; }
 
 private:
     std::string name_;
@@ -120,16 +121,16 @@ private:
 // tile is identical to another orientation.
 class Tile : public Shape {
 public:
-    typedef std::list<std::shared_ptr<Tile>> Set;
-    Tile() : Shape("") {}
-    Tile(Tile const& tile) : Shape(tile), rev_name_(tile.rev_name()) {}
+    typedef std::list<std::shared_ptr<Tile> > Set;
+    explicit Tile() : Shape("") {}
+    explicit Tile(Tile const& tile) : Shape(tile), rev_name_(tile.rev_name()) {}
     explicit Tile(std::string const& name) : Shape(name) {}
-    Tile(std::string const& name, Shape const& shape) : Shape(shape, name) {}
+    explicit Tile(std::string const& name, Shape const& shape) : Shape(shape, name) {}
     std::string rev_name() const { return rev_name_; }
 
     // Return a list of all orientations of this Tile.
-    std::list<std::shared_ptr<Shape>> all_orientations() const {
-        std::list<std::shared_ptr<Shape>> list;
+    std::list<std::shared_ptr<Shape> > all_orientations() const {
+        std::list<std::shared_ptr<Shape> > list;
         Shape s (*this, name()); // base Shape
         add_unique(list, s);
         s = s.rotate90(name()+"'"); // prime = rotate 90
@@ -206,7 +207,7 @@ protected:
     }
 
     // Add a Shape to a list, unless an identical Shape is already in the list.
-    static void add_unique(std::list<std::shared_ptr<Shape>>& list, Shape const& shape) {
+    static void add_unique(std::list<std::shared_ptr<Shape> >& list, Shape const& shape) {
         for (auto lshape : list)
             if (shape == *lshape)
                 return; // already in the list
@@ -244,7 +245,7 @@ public:
 // A RectBoard is a rectangular Board.
 class RectBoard : public Board {
 public:
-    RectBoard(std::string const& name, Coord width, Coord height) : Board(name) {
+    explicit RectBoard(std::string const& name, Coord width, Coord height) : Board(name) {
         for (Coord x = 0; x < width; ++x)
             for (Coord y = 0; y < height; ++y)
                 add(x,y);
@@ -262,7 +263,7 @@ public:
     explicit ShapeBoard(std::string const& name) : Board(name) {}
     virtual ~ShapeBoard() = default;
     virtual int dlx_column(Coord x, Coord y) const override {
-        // dlx column is the index of the Cell when we traverse 
+        // Let dlx column be the index of the Cell when we traverse 
         // the list of cells in the standard order.
         int col = 0;
         for (auto cell : cells()) {
@@ -274,4 +275,4 @@ public:
     }
 };
 
-#endif // _TILES_H_24957_
+#endif // _TILES_H_
