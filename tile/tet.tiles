@@ -1,0 +1,31 @@
+
+tile I
+*
+*
+*
+*
+end
+
+tile L
+*
+*
+**
+end
+
+tile E
+*
+**
+*
+end
+
+tile O
+**
+**
+end
+
+tile Z
+*
+**
+.*
+end
+

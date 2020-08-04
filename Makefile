@@ -1,20 +1,19 @@
+CC = gcc
+CCC = g++
 OPTIM = -O3 -Wall
 CFLAGS = $(OPTIM) --std=gnu99 -I../blt
 CCFLAGS = $(OPTIM) --std=c++11
-CC = gcc
-CCC = g++
-BIN2C = ./bin2c
 
 %.o: %.c
-	$(CC) $(CFLAGS) -c -o $@ $^
+	$(CC) $(CFLAGS) -c -o $@ $*.c
 %.o: ../blt/%.c
-	$(CC) $(CFLAGS) -c -o $@ $^
+	$(CC) $(CFLAGS) -c -o $@ ../blt/$*.c
 %.o: %.cpp
-	$(CCC) $(CCFLAGS) -c -o $@ $^
+	$(CCC) $(CCFLAGS) -c -o $@ $*.cpp
 
 # -------------------------------------------------------------
 
-TARGETS = tiles dlx_raw grizzly suds
+TARGETS = dlx_raw grizzly suds tiles 
 
 all: $(TARGETS)
 
@@ -27,14 +26,13 @@ suds: suds.o dlx.o blt.o
 dlx_raw: dlx_raw.o dlx.o blt.o
 	$(CC) $(CFLAGS) -o $@ $^
 
-tiles: tiles_main.o tiles_dlx.o dlx.o tiles_pent.o tiles_help.o
-	$(CCC) $(CCFLAGS) -o $@ $^
+TILES_OBJ = tiles.o tiles_pent.o tiles_help.o dlx.o
+tiles.o: tiles.h
+tiles: $(TILES_OBJ)
+	$(CCC) $(CCFLAGS) -o $@ $(TILES_OBJ)
 
 tiles_pent.c: tile/pent.tiles
-	$(BIN2C) pentominos < tile/pent.tiles > $@
-
-tiles_help.c: tiles_help.txt
-	$(BIN2C) help < tiles_help.txt > $@
+	perl -e 'print "char pentominos[]={"; for(;;){ $$n=read(\*STDIN,$$d,1024); last if not $$n; for ($$i=0; $$i<$$n; ++$$i){ print ord(substr $$d,$$i,1), "," }} print "0};"' < $^ > $@
 
 dlx_test: dlx_test.o dlx.o
 	$(CC) $(CFLAGS) -o $@ $^
@@ -50,4 +48,4 @@ push:
 	git push git@github.com:blynn/dlx.git master
 
 clean:
-	rm -f $(TARGETS) *.o tiles_pent.c tiles_help.c
+	rm -f $(TARGETS) *.o tiles_pent.c 
