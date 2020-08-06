@@ -1,5 +1,6 @@
 *.o
 tiles_pent.c
+tiles_hex.c
 dlx_raw
 grizzly
 suds
