@@ -103,6 +103,62 @@ static bool setup_tiles(Tile::Set& tiles, std::string const& tile_file, std::str
 }
 
 // ----------------------------------------------------------------
+class VSoln {
+public:
+    enum Rotation { r0, r90, r180, r270, r0r, r90r, r180r, r270r };
+    VSoln(Cell::Coord width, Cell::Coord height)
+        : width_(width), height_(height), board_(width * height) {
+        memset(board_.data(), '.', board_.size());
+    }
+    void set_cell(Cell::Coord x, Cell::Coord y, char ch) { 
+        board_[XY(x, y, width_)] = ch;
+    }
+    char cell(Cell::Coord x, Cell::Coord y) const {
+        return board_[XY(x, y, width_)];
+    }
+    char const* cell_row(Cell::Coord y) const {
+        return board_.data() + XY(Cell::Coord(0), y, width_);
+    }
+    bool is_rotref(VSoln const& s) const {
+        return is_equal(s,r0) || is_equal(s,r90) || is_equal(s,r180) || is_equal(s,r270) ||
+               is_equal(s,r0r) || is_equal(s,r90r) || is_equal(s,r180r) || is_equal(s,r270r);
+    }
+protected:
+    struct Coords {
+        Coords(Cell::Coord x, Cell::Coord y) : x(x), y(y) {}
+        Cell::Coord x,y;
+    };
+    Coords rotref(Cell::Coord x, Cell::Coord y, Rotation rot) const {
+        switch (rot) {
+        case r0:    return Coords(x, y);
+        case r90:   return Coords(height_-y-1, x);
+        case r180:  return Coords(0,0);
+        case r270:  return Coords(0,0);
+        case r0r:   return Coords(0,0);
+        case r90r:  return Coords(0,0);
+        case r180r: return Coords(0,0);
+        case r270r: return Coords(0,0);
+        }
+    }
+    bool is_equal(VSoln const& s, Rotation rot) const {
+        if (s.width_ != width_ || s.height_ != height_)
+            return false;
+        for (Cell::Coord x = 0; x < width_; ++x) {
+            for (Cell::Coord y = 0; y < height_; ++y) {
+                Coords r = rotref(x, y, rot);
+                if (board_[XY(x, y, width_)] != s.board_[XY(r.x, r.y, width_)])
+                    return false;
+            }
+        }
+        return true;
+    }
+private:
+    Cell::Coord width_;
+    Cell::Coord height_;
+    std::vector<char> board_;
+};
+
+// ----------------------------------------------------------------
 struct PrintInfo {
     PrintInfo() : visu_width(0), visu_height(0), print_desc(false) {}
     struct TilePos {
@@ -114,6 +170,7 @@ struct PrintInfo {
         Cell::Coord y;
     };
     std::vector<TilePos> tile_pos_list;
+    std::vector<VSoln> soln_list;
     Cell::Coord visu_width;
     Cell::Coord visu_height;
     bool print_desc;
@@ -166,34 +223,38 @@ static size_t all_tiles_size(Tile::Set const& tiles)
 }
 
 // ----------------------------------------------------------------
-static bool is_rotref(int row[], int n)
+static bool is_rotref(VSoln const& soln)
 {
-    return false; // FIXME
+    for (auto s2 : PI.soln_list)
+        if (soln.is_rotref(s2))
+            return true;
+    return false;
 }
 
 // ----------------------------------------------------------------
 static void print_soln(int row[], int n)
 {
-    if (!PI.rotref && is_rotref(row, n))
-        return;
     PI.total++;
-    std::vector<char> visu (PI.visu_width * PI.visu_height);
-    memset(visu.data(), '.', visu.size());
+    VSoln soln(PI.visu_width, PI.visu_height);
+    for (int i = 0; i < n; ++i) {
+        PrintInfo::TilePos tp = PI.tile_pos_list[row[i]];
+        for (auto cell : tp.orient->cells())
+            soln.set_cell(tp.x + cell.x(), tp.y + cell.y(), tp.vchar);
+    }
+    if (!PI.rotref && is_rotref(soln))
+        return;
+    PI.soln_list.push_back(soln);
     for (int i = 0; i < n; ++i) {
         PrintInfo::TilePos tp = PI.tile_pos_list[row[i]];
         if (PI.print_desc) {
             printf("%-*s(%*d,%*d) ", PI.sp_name, tp.orient->name().c_str(),
                 PI.sp_coord, tp.x, PI.sp_coord, tp.y);
         }
-        if (PI.visu_width > 0) { // build the visu matrix
-            for (auto cell : tp.orient->cells())
-                visu[XY(tp.x + cell.x(), tp.y + cell.y(), PI.visu_width)] = tp.vchar;
-        }
     }
     printf("\n");
     if (PI.visu_width > 0) { // print the visu matrix
         for (Cell::Coord y = 0; y < PI.visu_height; y++)
-            printf("    %.*s\n", PI.visu_width, visu.data()+XY(Cell::Coord(0),y,PI.visu_width));
+            printf("    %.*s\n", PI.visu_width, soln.cell_row(y));
     }
 }
 
@@ -246,6 +307,7 @@ int print_solns(Board const& board, Tile::Set const& tiles, bool desc, bool vis,
 
     dlx_forall_cover(dlx, print_soln);
     dlx_clear(dlx);
+    PI.soln_list.clear();
     PI.tile_pos_list.clear();
     return PI.total;
 }
