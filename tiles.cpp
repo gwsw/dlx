@@ -103,10 +103,10 @@ static bool setup_tiles(Tile::Set& tiles, std::string const& tile_file, std::str
 }
 
 // ----------------------------------------------------------------
-class VSoln {
+class Soln {
 public:
     enum Rotation { r0, r90, r180, r270, r0r, r90r, r180r, r270r };
-    VSoln(Cell::Coord width, Cell::Coord height)
+    Soln(Cell::Coord width, Cell::Coord height)
         : width_(width), height_(height), board_(width * height) {
         memset(board_.data(), '.', board_.size());
     }
@@ -119,7 +119,7 @@ public:
     char const* cell_row(Cell::Coord y) const {
         return board_.data() + XY(Cell::Coord(0), y, width_);
     }
-    bool is_rotref(VSoln const& s) const {
+    bool is_rotref(Soln const& s) const {
         return is_equal(s,r0) || is_equal(s,r90) || is_equal(s,r180) || is_equal(s,r270) ||
                is_equal(s,r0r) || is_equal(s,r90r) || is_equal(s,r180r) || is_equal(s,r270r);
     }
@@ -128,24 +128,35 @@ protected:
         Coords(Cell::Coord x, Cell::Coord y) : x(x), y(y) {}
         Cell::Coord x,y;
     };
-    Coords rotref(Cell::Coord x, Cell::Coord y, Rotation rot) const {
+    Coords rotref_dims(Rotation rot) const {
         switch (rot) {
-        case r0:    return Coords(x, y);
-        case r90:   return Coords(height_-y-1, x);
-        case r180:  return Coords(0,0);
-        case r270:  return Coords(0,0);
-        case r0r:   return Coords(0,0);
-        case r90r:  return Coords(0,0);
-        case r180r: return Coords(0,0);
-        case r270r: return Coords(0,0);
+        case r90: case r270: case r90r: case r270r: 
+            return Coords(height_, width_);
+        default:
+            return Coords(width_, height_);
         }
     }
-    bool is_equal(VSoln const& s, Rotation rot) const {
-        if (s.width_ != width_ || s.height_ != height_)
+    Coords rotref(Cell::Coord x, Cell::Coord y, Rotation rot) const {
+        auto xm = width_-x-1;
+        auto ym = height_-y-1;
+        switch (rot) {
+        case r0:    return Coords(x, y);
+        case r90:   return Coords(ym, x);
+        case r180:  return Coords(xm, ym);
+        case r270:  return Coords(y, xm);
+        case r0r:   return Coords(x, ym);
+        case r90r:  return Coords(y, x);
+        case r180r: return Coords(xm, y);
+        case r270r: return Coords(ym, xm);
+        }
+    }
+    bool is_equal(Soln const& s, Rotation rot) const {
+        auto r = rotref_dims(rot);
+        if (r.x != width_ || r.y != height_)
             return false;
         for (Cell::Coord x = 0; x < width_; ++x) {
             for (Cell::Coord y = 0; y < height_; ++y) {
-                Coords r = rotref(x, y, rot);
+                auto r = rotref(x, y, rot);
                 if (board_[XY(x, y, width_)] != s.board_[XY(r.x, r.y, width_)])
                     return false;
             }
@@ -160,7 +171,6 @@ private:
 
 // ----------------------------------------------------------------
 struct PrintInfo {
-    PrintInfo() : visu_width(0), visu_height(0), print_desc(false) {}
     struct TilePos {
         TilePos(std::shared_ptr<Shape> orient, Cell::Coord x, Cell::Coord y, char vchar)
             : orient(orient), vchar(vchar), x(x), y(y) {}
@@ -169,15 +179,54 @@ struct PrintInfo {
         Cell::Coord x;
         Cell::Coord y;
     };
-    std::vector<TilePos> tile_pos_list;
-    std::vector<VSoln> soln_list;
-    Cell::Coord visu_width;
-    Cell::Coord visu_height;
-    bool print_desc;
-    bool rotref;
-    int sp_name;
-    int sp_coord;
-    int total;
+    PrintInfo() : visu_width_(0), visu_height_(0), print_desc_(false) {}
+    void init(Cell::Coord width, Cell::Coord height, bool desc, bool vis, bool print_space, bool rotref) {
+        total_ = 0;
+        visu_width_ = vis ? width : 0;
+        visu_height_ = vis ? height : 0;
+        sp_name_ = print_space ? 3 : 0;
+        sp_coord_ = print_space ? 2 : 0;
+        print_desc_ = desc;
+        rotref_ = rotref;
+    }
+    void print_soln(int row[], int n) {
+        Soln soln(visu_width_, visu_height_);
+        for (int i = 0; i < n; ++i) {
+            PrintInfo::TilePos tp = tile_pos_list_[row[i]];
+            for (auto cell : tp.orient->cells())
+                soln.set_cell(tp.x + cell.x(), tp.y + cell.y(), tp.vchar);
+        }
+        if (!rotref_) {
+            for (auto s2 : soln_list_)
+                if (soln.is_rotref(s2))
+                    return;
+        }
+        if (visu_width_ > 0 || rotref_)
+            soln_list_.push_back(soln);
+        if (print_desc_) {
+            for (int i = 0; i < n; ++i) {
+                PrintInfo::TilePos tp = tile_pos_list_[row[i]];
+                printf("%-*s(%*d,%*d) ", sp_name_, tp.orient->name().c_str(),
+                    sp_coord_, tp.x, sp_coord_, tp.y);
+            }
+            printf("\n");
+        }
+        if (visu_width_ > 0) { // print the visu matrix
+            for (Cell::Coord y = 0; y < visu_height_; y++)
+                printf("    %.*s\n", visu_width_, soln.cell_row(y));
+            printf("\n");
+        }
+        total_++;
+    }
+    std::vector<TilePos> tile_pos_list_;
+    std::vector<Soln> soln_list_;
+    Cell::Coord visu_width_;
+    Cell::Coord visu_height_;
+    bool print_desc_;
+    bool rotref_;
+    int sp_name_;
+    int sp_coord_;
+    int total_;
 };
 
 static PrintInfo PI;
@@ -223,39 +272,9 @@ static size_t all_tiles_size(Tile::Set const& tiles)
 }
 
 // ----------------------------------------------------------------
-static bool is_rotref(VSoln const& soln)
-{
-    for (auto s2 : PI.soln_list)
-        if (soln.is_rotref(s2))
-            return true;
-    return false;
-}
-
-// ----------------------------------------------------------------
 static void print_soln(int row[], int n)
 {
-    PI.total++;
-    VSoln soln(PI.visu_width, PI.visu_height);
-    for (int i = 0; i < n; ++i) {
-        PrintInfo::TilePos tp = PI.tile_pos_list[row[i]];
-        for (auto cell : tp.orient->cells())
-            soln.set_cell(tp.x + cell.x(), tp.y + cell.y(), tp.vchar);
-    }
-    if (!PI.rotref && is_rotref(soln))
-        return;
-    PI.soln_list.push_back(soln);
-    for (int i = 0; i < n; ++i) {
-        PrintInfo::TilePos tp = PI.tile_pos_list[row[i]];
-        if (PI.print_desc) {
-            printf("%-*s(%*d,%*d) ", PI.sp_name, tp.orient->name().c_str(),
-                PI.sp_coord, tp.x, PI.sp_coord, tp.y);
-        }
-    }
-    printf("\n");
-    if (PI.visu_width > 0) { // print the visu matrix
-        for (Cell::Coord y = 0; y < PI.visu_height; y++)
-            printf("    %.*s\n", PI.visu_width, soln.cell_row(y));
-    }
+    PI.print_soln(row, n);
 }
 
 // ----------------------------------------------------------------
@@ -285,7 +304,7 @@ int print_solns(Board const& board, Tile::Set const& tiles, bool desc, bool vis,
             for (Cell::Coord px = 0; px <= board.width() - orient->width(); ++px) {
                 if (create_dlx_row(dlx, dlx_row, board, px, py, tile_num, orient)) {
                     char tile_char = no_rev_name ? tile->name()[0] : orient->name()[0];
-                    PI.tile_pos_list.push_back(PrintInfo::TilePos(orient, px, py, tile_char));
+                    PI.tile_pos_list_.push_back(PrintInfo::TilePos(orient, px, py, tile_char));
                     ++dlx_row;
                 }
             }
@@ -297,20 +316,14 @@ int print_solns(Board const& board, Tile::Set const& tiles, bool desc, bool vis,
         ++tile_num;
     }
     // Set PrintInfo values for print_soln.
-    PI.total = 0;
-    PI.visu_width = vis ? board.width() : 0;
-    PI.visu_height = vis ? board.height() : 0;
-    PI.sp_name = print_space ? 3 : 0;
-    PI.sp_coord = print_space ? 2 : 0;
-    PI.print_desc = desc;
-    PI.rotref = rotref;
-
+    PI.init(board.width(), board.height(), desc, vis, print_space, rotref);
     dlx_forall_cover(dlx, print_soln);
     dlx_clear(dlx);
-    PI.soln_list.clear();
-    PI.tile_pos_list.clear();
-    return PI.total;
+    PI.soln_list_.clear();
+    PI.tile_pos_list_.clear();
+    return PI.total_;
 }
+
 // ----------------------------------------------------------------
 int main(int argc, char* argv[])
 {
