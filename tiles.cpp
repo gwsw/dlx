@@ -18,16 +18,16 @@ int verbose = 0;
 // ----------------------------------------------------------------
 static int usage(bool more_info = true)
 {
-    printf("usage: tiles [-v][-l][-s] [-t tiles][-p][-x] board\n");
+    printf("usage: tiles [-vlsru] [-p][-x][-t TILES] BOARD\n");
     printf("       -v = print ASCII picture for each solution\n");
     printf("       -l = print list of tiles for each solution\n");
     printf("       -s = print extra spaces in -l output for alignment\n");
-    printf("       -r = suppress rotations and reflections (NOT IMPLEMENTED)\n");
+    printf("       -r = show rotations and reflections\n");
+    printf("       -u = use reversed name for reversed tiles in -v display\n");
     printf("       -p = use pentomino tiles\n");
     printf("       -x = use hexomino tiles\n");
-    printf("       -u = use reversed name for reversed tiles in -v display\n");
-    printf("       tiles is a file containing one or more tile descriptions\n");
-    printf("       board is either a file containing a board description,\n");
+    printf("       -t = use tiles described in TILES file\n");
+    printf("       BOARD is either a file containing a board description,\n");
     printf("                or \"NxM\" (integer N,M) for a rectangular board\n");
     if (more_info) printf(" \"tiles help\" for more information\n");
     return 1;
@@ -333,7 +333,7 @@ int main(int argc, char* argv[])
     bool vis = false;
     bool desc = false;
     bool print_space = false;
-    bool rotref = true;
+    bool rotref = false;
     bool no_rev_name = true;
     bool print_count = true;
 
@@ -346,7 +346,7 @@ int main(int argc, char* argv[])
         case 'l': desc = true; break;
         case 'c': print_count = false; break;
         case 'p': tile_desc = tiles_pentominos; break;
-        case 'r': rotref = false; break;
+        case 'r': rotref = true; break;
         case 's': print_space = true; break;
         case 't': tile_file = optarg; break;
         case 'u': no_rev_name = false; break;

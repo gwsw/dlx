@@ -28,8 +28,8 @@ char help[] = {
 "If NAME consists of two strings separated by a slash, \n"
 "the first string is used as the name of the tile in its normal orientation \n"
 "and the second string is used as the name when the tile is reversed.\n"
-"If there is no slash, the reversed name is the tile's name followed by\n"
-"the letter \"r\".\n"
+"If there is no slash, the reversed name is the tile's name with the\n"
+"case of the first letter inverted.\n"
 "\n"
 "For example, this tile file describes two pentominoes:\n"
 "    tile F\n"
@@ -42,8 +42,5 @@ char help[] = {
 "    ***\n"
 "    end\n"
 "\n"
-"If the line \"reverse case\" is present, rather than forming the tile's \n"
-"reversed name by adding an \"r\", the reversed name is the first letter\n"
-"of the tile's name, with the case reversed.\n"
 
 };
