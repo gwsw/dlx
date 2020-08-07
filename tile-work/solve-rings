@@ -6,7 +6,7 @@ use Getopt::Std;
 # is a rectangle with one centered rectangular hole.
 # Leaves boards in $board_dir and complete solutions in $sol_dir.
 
-my $usage = "usage: $0 [-qv] [-b board-dir] [-s sol-dir]";
+my $usage = "usage: $0 [-q] [-b board-dir] [-s sol-dir]";
 
 my $min_size = 7;
 my $max_size = 20;
@@ -18,7 +18,7 @@ my $tiles = '../tiles';
 main();
 sub main {
     my %opt;
-    die "$usage\n" if not getopts('b:s:qv', \%opt);
+    die "$usage\n" if not getopts('b:s:q', \%opt);
     $board_dir = $opt{b} if $opt{b};
     $sol_dir = $opt{s} if $opt{s};
     my $item = 1;
@@ -33,21 +33,21 @@ sub main {
                 my $sol_file = "$sol_dir/$item";
                 mkboard($board_file, $ox, $oy, $ix, $iy);
                 my $solutions = mksol($board_file, $sol_file);
-                if ($solutions > 0) {
+                if ($solutions == 0) {
+                    unlink $board_file, $sol_file;
+                } else {
+                    printf "%2d. %-5s - %-5s %s : %5d solutions\n", 
+                            $item, $ox.'x'.$oy, $ix.'x'.$iy, 
+                            (even($ox-$ix) and even($oy-$iy)) ? 'C' : ' ',
+                            $solutions
+                        unless $opt{q};
                     ++$item;
-                    if ($opt{v}) {
-                        printf "%2d. %-5s - %-5s : %5d solutions\n", 
-                            $item, $ox.'x'.$oy, $ix.'x'.$iy, $solutions;
-                    } elsif (not $opt{q}) {
-                        print '.';
-                    }
                 }
             }
         }
         }
     }
     }
-    print "\n" if not $opt{q} and not $opt{v};
 }
 
 sub mkboard {
@@ -81,4 +81,9 @@ sub mksol {
     my ($solutions) = `tail -1 '$sol_file'` =~ /^\s*(\d+) solutions/;
     $solutions = 0 if not $solutions;
     return $solutions;
+}
+
+sub even {
+    my ($n) = @_;
+    return (($n % 2) == 0);
 }
