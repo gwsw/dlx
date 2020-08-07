@@ -10,7 +10,7 @@ extern "C" {
 }
 
 extern int print_solns(Board const& board, Tile::Set const& tiles, bool desc, bool vis, bool print_space, bool no_rev_name, bool rotref);
-extern const char pentominos[];
+extern const char tiles_pentominos[], tiles_hexominos[];
 extern const char help[];
 
 int verbose = 0;
@@ -18,12 +18,13 @@ int verbose = 0;
 // ----------------------------------------------------------------
 static int usage(bool more_info = true)
 {
-    printf("usage: tiles [-v][-l][-s] [-t tiles][-p] board\n");
+    printf("usage: tiles [-v][-l][-s] [-t tiles][-p][-x] board\n");
     printf("       -v = print ASCII picture for each solution\n");
     printf("       -l = print list of tiles for each solution\n");
     printf("       -s = print extra spaces in -l output for alignment\n");
     printf("       -r = suppress rotations and reflections (NOT IMPLEMENTED)\n");
     printf("       -p = use pentomino tiles\n");
+    printf("       -x = use hexomino tiles\n");
     printf("       -u = use reversed name for reversed tiles in -v display\n");
     printf("       tiles is a file containing one or more tile descriptions\n");
     printf("       board is either a file containing a board description,\n");
@@ -265,17 +266,18 @@ int main(int argc, char* argv[])
         return print_help();
 
     int opt;
-    while ((opt = getopt(argc, argv, "chlprst:uvV?")) != -1) {
+    while ((opt = getopt(argc, argv, "chlprst:uvVx?")) != -1) {
         switch (opt) {
         case 'l': desc = true; break;
         case 'c': print_count = false; break;
-        case 'p': tile_desc = pentominos; break;
+        case 'p': tile_desc = tiles_pentominos; break;
         case 'r': rotref = false; break;
         case 's': print_space = true; break;
         case 't': tile_file = optarg; break;
         case 'u': no_rev_name = false; break;
         case 'v': vis = true; break;
         case 'V': ++verbose; break;
+        case 'x': tile_desc = tiles_hexominos; break;
         case 'h': case '?': return print_help();
         default: return usage();
         }
