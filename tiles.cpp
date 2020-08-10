@@ -180,6 +180,7 @@ protected:
         auto xm = width_-x-1;
         auto ym = height_-y-1;
         switch (rot) {
+        default:
         case r0:    return Coords(x, y);
         case r90:   return Coords(ym, x);
         case r180:  return Coords(xm, ym);
@@ -242,6 +243,9 @@ public:
         print_desc_ = desc;
         rotref_ = rotref;
     }
+    void add_tile(std::shared_ptr<Shape> orient, Coord x, Coord y, char tile_char) {
+        tile_pos_list_.push_back(PrintInfo::TilePos(orient, x, y, tile_char));
+    }
     unsigned total() const { return total_; }
     void print_soln(int row[], int n) {
         Soln soln(width_, height_);
@@ -277,8 +281,8 @@ public:
         }
         total_++;
     }
-    std::vector<TilePos> tile_pos_list_;
 private:
+    std::vector<TilePos> tile_pos_list_;
     std::vector<Soln> soln_list_;
     Coord width_;
     Coord height_;
@@ -348,6 +352,9 @@ int print_solns(Board const& board, Tile::Set const& tiles, bool desc, VisType v
         return 0;
     }
 
+    // Setup PrintInfo for print_soln.
+    PI.init(board.width(), board.height(), desc, vis, print_space, rotref);
+
     // Create the dlx matrix.
     auto dlx = dlx_new();
     int dlx_row = 0;
@@ -365,7 +372,7 @@ int print_solns(Board const& board, Tile::Set const& tiles, bool desc, VisType v
             for (Cell::Coord px = 0; px <= board.width() - orient->width(); ++px) {
                 if (create_dlx_row(dlx, dlx_row, board, px, py, tile_num, orient)) {
                     char tile_char = no_rev_name ? tile->name()[0] : orient->name()[0];
-                    PI.tile_pos_list_.push_back(PrintInfo::TilePos(orient, px, py, tile_char));
+                    PI.add_tile(orient, px, py, tile_char);
                     ++dlx_row;
                 }
             }
@@ -376,8 +383,6 @@ int print_solns(Board const& board, Tile::Set const& tiles, bool desc, VisType v
         }
         ++tile_num;
     }
-    // Set PrintInfo values for print_soln.
-    PI.init(board.width(), board.height(), desc, vis, print_space, rotref);
     dlx_forall_cover(dlx, print_soln);
     dlx_clear(dlx);
     return PI.total();
