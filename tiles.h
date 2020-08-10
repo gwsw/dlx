@@ -275,4 +275,6 @@ public:
     }
 };
 
+#define FOR_EACH_CELL(var,shape) for (auto var : (shape)->cells())
+
 #endif // _TILES_H_

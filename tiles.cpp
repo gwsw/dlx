@@ -9,12 +9,9 @@ extern "C" {
 #include "dlx.h"
 }
 
-enum VisType { VIS_NONE, VIS_CHARS, VIS_ART };
-extern int print_solns(Board const& board, Tile::Set const& tiles, bool desc, VisType vis, bool print_space, bool no_rev_name, bool rotref);
+enum VisType { VIS_NONE, VIS_DESC, VIS_CHARS, VIS_ART };
 extern const char tiles_pentominos[], tiles_hexominos[];
 extern const char help[];
-
-int verbose = 0;
 
 // ----------------------------------------------------------------
 static int usage(bool more_info = true)
@@ -24,7 +21,7 @@ static int usage(bool more_info = true)
     printf("       -V = print better ASCII picture for each solution\n");
     printf("       -l = print list of tiles for each solution\n");
     printf("       -s = print extra spaces in -l output for alignment\n");
-    printf("       -r = show rotations and reflections\n");
+    printf("       -r = don't suppress rotations and reflections\n");
     printf("       -u = use reversed name for reversed tiles in -v display\n");
     printf("       -p = use pentomino tiles\n");
     printf("       -x = use hexomino tiles\n");
@@ -121,9 +118,6 @@ public:
         if (x >= width_ || y >= height_)
             return '.';
         return board_[XY(x, y, width_)];
-    }
-    char const* cell_row(Coord y) const {
-        return board_.data() + XY(Coord(0), y, width_);
     }
     bool is_rotref(Soln const& s) const {
         return is_equal(s,r0) || is_equal(s,r90) || is_equal(s,r180) || is_equal(s,r270) ||
@@ -231,7 +225,7 @@ public:
         Coord y;
     };
     PrintInfo() {}
-    void init(Coord width, Coord height, bool desc, VisType vis, bool print_space, bool rotref) {
+    void init(Coord width, Coord height, VisType vis, bool print_space, bool rotref) {
         soln_list_.clear();
         tile_pos_list_.clear();
         total_ = 0;
@@ -240,7 +234,6 @@ public:
         vis_ = vis;
         sp_name_ = print_space ? 3 : 0;
         sp_coord_ = print_space ? 2 : 0;
-        print_desc_ = desc;
         rotref_ = rotref;
     }
     void add_tile(std::shared_ptr<Shape> orient, Coord x, Coord y, char tile_char) {
@@ -251,7 +244,7 @@ public:
         Soln soln(width_, height_);
         for (int i = 0; i < n; ++i) {
             PrintInfo::TilePos tp = tile_pos_list_[row[i]];
-            for (auto cell : tp.orient->cells())
+            FOR_EACH_CELL(cell, tp.orient)
                 soln.set_cell(tp.x + cell.x(), tp.y + cell.y(), tp.vchar);
         }
         if (!rotref_) {
@@ -259,17 +252,16 @@ public:
                 if (soln.is_rotref(s2))
                     return;
         }
-        ///if (vis_ != 0 || rotref_)
-            soln_list_.push_back(soln);
-        if (print_desc_) {
+        soln_list_.push_back(soln);
+        switch (vis_) {
+        case VIS_DESC:
             for (int i = 0; i < n; ++i) {
                 PrintInfo::TilePos tp = tile_pos_list_[row[i]];
                 printf("%-*s(%*d,%*d) ", sp_name_, tp.orient->name().c_str(),
                     sp_coord_, tp.x, sp_coord_, tp.y);
             }
             printf("\n");
-        }
-        switch (vis_) {
+            break;
         case VIS_CHARS:
             soln.draw_vis_chars();
             break;
@@ -287,7 +279,6 @@ private:
     Coord width_;
     Coord height_;
     VisType vis_;
-    bool print_desc_;
     bool rotref_;
     int sp_name_;
     int sp_coord_;
@@ -308,12 +299,10 @@ static bool create_dlx_row(dlx_t dlx, int dlx_row, Board const& board, Cell::Coo
     // Bits in the first group indicate which board cells are covered by the tile.
     // Exactly one bit will be set in the second group, to indicate the tile.
 
-    if (verbose) printf("dlx_set %d %d # tile num %d (%s at %d,%d)\n", dlx_row, (int)board.size() + tile_num, tile_num, orient->name().c_str(), px, py);
     // Make a list of the dlx columns that should be set.
     // Don't actually set them until we're sure we are going to use this dlx row.
     std::list<int> dlx_cols;
-    for (auto cell : orient->cells()) {
-        if (verbose) printf("dlx_set %d %d # board pos %d,%d\n", dlx_row, board.dlx_column(px+cell.x(), py+cell.y()), px+cell.x(), py+cell.y());
+    FOR_EACH_CELL(cell, orient) {
         int dlx_col = board.dlx_column(px+cell.x(), py+cell.y());
         if (dlx_col < 0) // tile doesn't fit here; skip this px,py
             return false;
@@ -343,7 +332,7 @@ static void print_soln(int row[], int n)
 }
 
 // ----------------------------------------------------------------
-int print_solns(Board const& board, Tile::Set const& tiles, bool desc, VisType vis, bool print_space, bool no_rev_name, bool rotref)
+int print_solns(Board const& board, Tile::Set const& tiles, VisType vis, bool print_space, bool print_rev_name, bool rotref)
 {
     if (all_tiles_size(tiles) != board.size()) {
         // Area of tiles is different from area of board; they will never fit.
@@ -353,7 +342,7 @@ int print_solns(Board const& board, Tile::Set const& tiles, bool desc, VisType v
     }
 
     // Setup PrintInfo for print_soln.
-    PI.init(board.width(), board.height(), desc, vis, print_space, rotref);
+    PI.init(board.width(), board.height(), vis, print_space, rotref);
 
     // Create the dlx matrix.
     auto dlx = dlx_new();
@@ -371,7 +360,7 @@ int print_solns(Board const& board, Tile::Set const& tiles, bool desc, VisType v
             for (Cell::Coord py = 0; py <= board.height() - orient->height(); ++py)
             for (Cell::Coord px = 0; px <= board.width() - orient->width(); ++px) {
                 if (create_dlx_row(dlx, dlx_row, board, px, py, tile_num, orient)) {
-                    char tile_char = no_rev_name ? tile->name()[0] : orient->name()[0];
+                    char tile_char = print_rev_name ? orient->name()[0] : tile->name()[0];
                     PI.add_tile(orient, px, py, tile_char);
                     ++dlx_row;
                 }
@@ -383,6 +372,7 @@ int print_solns(Board const& board, Tile::Set const& tiles, bool desc, VisType v
         }
         ++tile_num;
     }
+    // Run the dlx solver.
     dlx_forall_cover(dlx, print_soln);
     dlx_clear(dlx);
     return PI.total();
@@ -395,10 +385,9 @@ int main(int argc, char* argv[])
     std::string tile_desc;
     std::string board_file;
     VisType vis = VIS_NONE;
-    bool desc = false;
     bool print_space = false;
     bool rotref = false;
-    bool no_rev_name = true;
+    bool print_rev_name = false;
     bool print_count = true;
 
     if (argc > 1 && (strcmp(argv[1], "help") == 0 || strcmp(argv[1], "--help") == 0))
@@ -407,13 +396,13 @@ int main(int argc, char* argv[])
     int opt;
     while ((opt = getopt(argc, argv, "chlprst:uvVx?")) != -1) {
         switch (opt) {
-        case 'l': desc = true; break;
         case 'c': print_count = false; break;
+        case 'l': vis = VIS_DESC; break;
         case 'p': tile_desc = tiles_pentominos; break;
         case 'r': rotref = true; break;
         case 's': print_space = true; break;
         case 't': tile_file = optarg; break;
-        case 'u': no_rev_name = false; break;
+        case 'u': print_rev_name = true; break;
         case 'v': vis = VIS_CHARS; break;
         case 'V': vis = VIS_ART; break;
         case 'x': tile_desc = tiles_hexominos; break;
@@ -421,7 +410,7 @@ int main(int argc, char* argv[])
         default: return usage();
         }
     }
-    if (vis == VIS_NONE && !desc)
+    if (vis == VIS_NONE)
         vis = VIS_CHARS;
     if (optind < argc)
         board_file = argv[optind++];
@@ -438,7 +427,7 @@ int main(int argc, char* argv[])
     if (!setup_tiles(tiles, tile_file, tile_desc))
         return 1;
 
-    int n = print_solns(*board.get(), tiles, desc, vis, print_space, no_rev_name, rotref);
+    int n = print_solns(*board.get(), tiles, vis, print_space, print_rev_name, rotref);
     if (print_count)
         printf("%d solutions\n", n);
     return 0;
