@@ -9,16 +9,25 @@ extern "C" {
 #include "dlx.h"
 }
 
-enum VisType { VIS_NONE, VIS_DESC, VIS_CHARS, VIS_ART };
+enum class VisType { NONE, DESC, CHARS, ART };
+
+struct VisParam {
+    VisParam(unsigned art_hchars = 0, unsigned art_vrows = 0)
+        : art_hchars(art_hchars), art_vrows(art_vrows) {}
+    unsigned art_hchars;
+    unsigned art_vrows;
+};
+
 extern const char tiles_pentominos[], tiles_hexominos[];
 extern const char help[];
 
 // ----------------------------------------------------------------
-static int usage(bool more_info = true)
+static void usage1()
 {
-    printf("usage: tiles [-vVlsru] [-p][-x][-t TILES] BOARD\n");
+    printf("usage: tiles [-vVlsru][-W#,#] [-p][-x][-t TILES] BOARD\n");
     printf("       -v = print ASCII picture for each solution\n");
     printf("       -V = print better ASCII picture for each solution\n");
+    printf("       -W = size of -V cells\n");
     printf("       -l = print list of tiles for each solution\n");
     printf("       -s = print extra spaces in -l output for alignment\n");
     printf("       -r = don't suppress rotations and reflections\n");
@@ -28,14 +37,20 @@ static int usage(bool more_info = true)
     printf("       -t = use tiles described in TILES file\n");
     printf("       BOARD is either a file containing a board description,\n");
     printf("                or \"NxM\" (integer N,M) for a rectangular board\n");
-    if (more_info) printf(" \"tiles help\" for more information\n");
+}
+
+// ----------------------------------------------------------------
+static int usage()
+{
+    usage1();
+    printf(" \"tiles help\" for more information\n");
     return 1;
 }
 
 // ----------------------------------------------------------------
 static int print_help()
 {
-    (void) usage(false);
+    usage1();
     printf("%s\n", help);
     return 0;
 }
@@ -84,7 +99,7 @@ static bool setup_tiles(Tile::Set& tiles, std::string const& tile_file, std::str
     if (!tile_desc.empty()) {
         StringLineReader rd (tile_desc);
         ok = parse_tiles(rd, tiles);
-        if (!ok) fprintf(stderr, "internal error!\n");
+        if (!ok) fprintf(stderr, "internal error: cannot parse tile desc\n");
     } else if (!tile_file.empty()) {
         FILE* f = fopen(tile_file.c_str(), "r");
         if (f == NULL) {
@@ -132,9 +147,7 @@ public:
         }
         printf("\n");
     }
-    void draw_vis_art() {
-        const int hchars = 3; // dashes horizontally between intersections
-        const int vrows = 1; // bars vertically between intersections
+    void draw_vis_art(unsigned hchars, unsigned vrows) {
         for (Coord y = 0; y <= height_; ++y) {
             // Draw row vertically between squares.
             for (Coord x = 0; x <= width_; ++x) {
@@ -225,13 +238,14 @@ public:
         Coord y;
     };
     PrintInfo() {}
-    void init(Coord width, Coord height, VisType vis, bool print_space, bool rotref) {
+    void init(Coord width, Coord height, VisType vis, VisParam const& vis_param, bool print_space, bool rotref) {
         soln_list_.clear();
         tile_pos_list_.clear();
         total_ = 0;
         width_ = width;
         height_ = height;
         vis_ = vis;
+        vis_param_ = vis_param;
         sp_name_ = print_space ? 3 : 0;
         sp_coord_ = print_space ? 2 : 0;
         rotref_ = rotref;
@@ -254,7 +268,7 @@ public:
         }
         soln_list_.push_back(soln);
         switch (vis_) {
-        case VIS_DESC:
+        case VisType::DESC:
             for (int i = 0; i < n; ++i) {
                 PrintInfo::TilePos tp = tile_pos_list_[row[i]];
                 printf("%-*s(%*d,%*d) ", sp_name_, tp.orient->name().c_str(),
@@ -262,12 +276,12 @@ public:
             }
             printf("\n");
             break;
-        case VIS_CHARS:
+        case VisType::CHARS:
             soln.draw_vis_chars();
             break;
-        case VIS_ART:
+        case VisType::ART:
             // ASCII art
-            soln.draw_vis_art();
+            soln.draw_vis_art(vis_param_.art_hchars, vis_param_.art_vrows);
             break;
         default: break;
         }
@@ -279,6 +293,7 @@ private:
     Coord width_;
     Coord height_;
     VisType vis_;
+    VisParam vis_param_;
     bool rotref_;
     int sp_name_;
     int sp_coord_;
@@ -332,7 +347,7 @@ static void print_soln(int row[], int n)
 }
 
 // ----------------------------------------------------------------
-int print_solns(Board const& board, Tile::Set const& tiles, VisType vis, bool print_space, bool print_rev_name, bool rotref)
+int print_solns(Board const& board, Tile::Set const& tiles, VisType vis, VisParam const& vis_param, bool print_space, bool print_rev_name, bool rotref)
 {
     if (all_tiles_size(tiles) != board.size()) {
         // Area of tiles is different from area of board; they will never fit.
@@ -342,7 +357,7 @@ int print_solns(Board const& board, Tile::Set const& tiles, VisType vis, bool pr
     }
 
     // Setup PrintInfo for print_soln.
-    PI.init(board.width(), board.height(), vis, print_space, rotref);
+    PI.init(board.width(), board.height(), vis, vis_param, print_space, rotref);
 
     // Create the dlx matrix.
     auto dlx = dlx_new();
@@ -384,7 +399,8 @@ int main(int argc, char* argv[])
     std::string tile_file;
     std::string tile_desc;
     std::string board_file;
-    VisType vis = VIS_NONE;
+    VisType vis = VisType::NONE;
+    VisParam vis_param (3,1);
     bool print_space = false;
     bool rotref = false;
     bool print_rev_name = false;
@@ -394,24 +410,25 @@ int main(int argc, char* argv[])
         return print_help();
 
     int opt;
-    while ((opt = getopt(argc, argv, "chlprst:uvVx?")) != -1) {
+    while ((opt = getopt(argc, argv, "chlprst:uvVW:x?")) != -1) {
         switch (opt) {
         case 'c': print_count = false; break;
-        case 'l': vis = VIS_DESC; break;
+        case 'l': vis = VisType::DESC; break;
         case 'p': tile_desc = tiles_pentominos; break;
         case 'r': rotref = true; break;
         case 's': print_space = true; break;
         case 't': tile_file = optarg; break;
         case 'u': print_rev_name = true; break;
-        case 'v': vis = VIS_CHARS; break;
-        case 'V': vis = VIS_ART; break;
+        case 'v': vis = VisType::CHARS; break;
+        case 'V': vis = VisType::ART; break;
+        case 'W': if (sscanf(optarg, "%u,%u", &vis_param.art_hchars, &vis_param.art_vrows) != 2) return usage(); break;
         case 'x': tile_desc = tiles_hexominos; break;
         case 'h': case '?': return print_help();
         default: return usage();
         }
     }
-    if (vis == VIS_NONE)
-        vis = VIS_CHARS;
+    if (vis == VisType::NONE)
+        vis = VisType::CHARS;
     if (optind < argc)
         board_file = argv[optind++];
     if (optind < argc) {
@@ -427,7 +444,7 @@ int main(int argc, char* argv[])
     if (!setup_tiles(tiles, tile_file, tile_desc))
         return 1;
 
-    int n = print_solns(*board.get(), tiles, vis, print_space, print_rev_name, rotref);
+    int n = print_solns(*board.get(), tiles, vis, vis_param, print_space, print_rev_name, rotref);
     if (print_count)
         printf("%d solutions\n", n);
     return 0;
