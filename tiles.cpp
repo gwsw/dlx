@@ -9,7 +9,8 @@ extern "C" {
 #include "dlx.h"
 }
 
-extern int print_solns(Board const& board, Tile::Set const& tiles, bool desc, int vis, bool print_space, bool no_rev_name, bool rotref);
+enum VisType { VIS_NONE, VIS_CHARS, VIS_ART };
+extern int print_solns(Board const& board, Tile::Set const& tiles, bool desc, VisType vis, bool print_space, bool no_rev_name, bool rotref);
 extern const char tiles_pentominos[], tiles_hexominos[];
 extern const char help[];
 
@@ -110,7 +111,8 @@ public:
     enum Rotation { r0, r90, r180, r270, r0r, r90r, r180r, r270r };
     Soln(Coord width, Coord height)
         : width_(width), height_(height), board_(width * height) {
-        memset(board_.data(), '.', board_.size());
+        for (unsigned i = 0; i < board_.size(); ++i)
+            board_[i] = '.';
     }
     void set_cell(Coord x, Coord y, char ch) { 
         board_[XY(x, y, width_)] = ch;
@@ -127,12 +129,16 @@ public:
         return is_equal(s,r0) || is_equal(s,r90) || is_equal(s,r180) || is_equal(s,r270) ||
                is_equal(s,r0r) || is_equal(s,r90r) || is_equal(s,r180r) || is_equal(s,r270r);
     }
-    void draw_visu() {
-        for (Coord y = 0; y < height_; ++y)
-            printf("    %.*s\n", width_, cell_row(y));
+    void draw_vis_chars() {
+        for (Coord y = 0; y < height_; ++y) {
+            printf("    ");
+            for (Coord x = 0; x < width_; ++x)
+                printf("%c", cell(x,y));
+            printf("\n");
+        }
         printf("\n");
     }
-    void draw_art() {
+    void draw_vis_art() {
         const int hchars = 3; // dashes horizontally between intersections
         const int vrows = 1; // bars vertically between intersections
         for (Coord y = 0; y <= height_; ++y) {
@@ -212,17 +218,21 @@ private:
 };
 
 // ----------------------------------------------------------------
-struct PrintInfo {
+class PrintInfo {
+public:
+    typedef Cell::Coord Coord;
     struct TilePos {
-        TilePos(std::shared_ptr<Shape> orient, Cell::Coord x, Cell::Coord y, char vchar)
+        TilePos(std::shared_ptr<Shape> orient, Coord x, Coord y, char vchar)
             : orient(orient), vchar(vchar), x(x), y(y) {}
         std::shared_ptr<Shape> orient;
         char vchar;
-        Cell::Coord x;
-        Cell::Coord y;
+        Coord x;
+        Coord y;
     };
-    PrintInfo() { init(0, 0, false, 0, false, true); }
-    void init(Cell::Coord width, Cell::Coord height, bool desc, int vis, bool print_space, bool rotref) {
+    PrintInfo() {}
+    void init(Coord width, Coord height, bool desc, VisType vis, bool print_space, bool rotref) {
+        soln_list_.clear();
+        tile_pos_list_.clear();
         total_ = 0;
         width_ = width;
         height_ = height;
@@ -232,6 +242,7 @@ struct PrintInfo {
         print_desc_ = desc;
         rotref_ = rotref;
     }
+    unsigned total() const { return total_; }
     void print_soln(int row[], int n) {
         Soln soln(width_, height_);
         for (int i = 0; i < n; ++i) {
@@ -255,21 +266,23 @@ struct PrintInfo {
             printf("\n");
         }
         switch (vis_) {
-        case 1:
-            soln.draw_visu();
+        case VIS_CHARS:
+            soln.draw_vis_chars();
             break;
-        case 2: {
+        case VIS_ART:
             // ASCII art
-            soln.draw_art();
-            break; }
+            soln.draw_vis_art();
+            break;
+        default: break;
         }
         total_++;
     }
     std::vector<TilePos> tile_pos_list_;
+private:
     std::vector<Soln> soln_list_;
-    Cell::Coord width_;
-    Cell::Coord height_;
-    int vis_;
+    Coord width_;
+    Coord height_;
+    VisType vis_;
     bool print_desc_;
     bool rotref_;
     int sp_name_;
@@ -326,7 +339,7 @@ static void print_soln(int row[], int n)
 }
 
 // ----------------------------------------------------------------
-int print_solns(Board const& board, Tile::Set const& tiles, bool desc, int vis, bool print_space, bool no_rev_name, bool rotref)
+int print_solns(Board const& board, Tile::Set const& tiles, bool desc, VisType vis, bool print_space, bool no_rev_name, bool rotref)
 {
     if (all_tiles_size(tiles) != board.size()) {
         // Area of tiles is different from area of board; they will never fit.
@@ -367,9 +380,7 @@ int print_solns(Board const& board, Tile::Set const& tiles, bool desc, int vis, 
     PI.init(board.width(), board.height(), desc, vis, print_space, rotref);
     dlx_forall_cover(dlx, print_soln);
     dlx_clear(dlx);
-    PI.soln_list_.clear();
-    PI.tile_pos_list_.clear();
-    return PI.total_;
+    return PI.total();
 }
 
 // ----------------------------------------------------------------
@@ -378,7 +389,7 @@ int main(int argc, char* argv[])
     std::string tile_file;
     std::string tile_desc;
     std::string board_file;
-    int vis = 0;
+    VisType vis = VIS_NONE;
     bool desc = false;
     bool print_space = false;
     bool rotref = false;
@@ -398,15 +409,15 @@ int main(int argc, char* argv[])
         case 's': print_space = true; break;
         case 't': tile_file = optarg; break;
         case 'u': no_rev_name = false; break;
-        case 'v': vis = 1; break;
-        case 'V': vis = 2; break;
+        case 'v': vis = VIS_CHARS; break;
+        case 'V': vis = VIS_ART; break;
         case 'x': tile_desc = tiles_hexominos; break;
         case 'h': case '?': return print_help();
         default: return usage();
         }
     }
-    if (!vis && !desc)
-        vis = 1;
+    if (vis == VIS_NONE && !desc)
+        vis = VIS_CHARS;
     if (optind < argc)
         board_file = argv[optind++];
     if (optind < argc) {
