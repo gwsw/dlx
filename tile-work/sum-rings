@@ -2,8 +2,9 @@
 
 # Summarize ring solutions and print one example of each.
 
-for f in ring-sols/*; do
-    o=$(./pickone $f)
+cd ring-sols
+for f in $(ls -1 | sort -n); do
+    o=$(perl -e '$s=1; while(<>){ $b=/^\s*$/; $s=0 if $s and not $b; if (not $s){ last if $b; print }}' $f)
     n=$(tail -1 $f | sed 's/ .*//')
-    if [ $n -gt 0 ]; then echo "$n solutions"; echo "$o"; echo; fi
+    if [ $n -gt 0 ]; then echo "$f: $n solutions"; echo "$o"; echo; fi
 done
