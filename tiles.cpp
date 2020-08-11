@@ -13,9 +13,10 @@ enum class VisType { NONE, DESC, CHARS, ART };
 
 struct VisParam {
     VisParam(unsigned art_hchars = 0, unsigned art_vrows = 0)
-        : art_hchars(art_hchars), art_vrows(art_vrows) {}
+        : art_hchars(art_hchars), art_vrows(art_vrows), desc_spaces(false) {}
     unsigned art_hchars;
     unsigned art_vrows;
+    bool desc_spaces;
 };
 
 extern const char tiles_pentominos[], tiles_hexominos[];
@@ -149,7 +150,7 @@ public:
     }
     void draw_vis_art(unsigned hchars, unsigned vrows) {
         for (Coord y = 0; y <= height_; ++y) {
-            // Draw row vertically between squares.
+            // Draw row vertically-between squares.
             for (Coord x = 0; x <= width_; ++x) {
                 char br = cell(x,y);
                 char bl = cell(x-1,y);
@@ -157,17 +158,17 @@ public:
                 char tl = cell(x-1,y-1);
                 bool hh = (tl == tr && bl == br);
                 bool vv = (tl == bl && tr == br);
-                printc((hh && vv) ? ' ' : hh ? '-' : vv ? '|' : '+', 1);
-                printc(same_cell(x, y, x, y-1) ? ' ' : '-', hchars);
+                printc((hh && vv) ? ' ' : hh ? '-' : vv ? '|' : '+'); // corner
+                printc(same_cell(x, y, x, y-1) ? ' ' : '-', hchars); // horz line
             }
-            printc('\n', 1);
-            // Draw row(s) vertically interior to squares.
+            printc('\n');
+            // Draw row(s) vertically-interior to squares.
             for (int nrow = 0; nrow < vrows; ++nrow) {
                 for (Coord x = 0; x <= width_; ++x) {
-                    printc(same_cell(x, y, x-1, y) ? ' ' : '|', 1);
-                    printc(' ', hchars);
+                    printc(same_cell(x, y, x-1, y) ? ' ' : '|'); // vert line
+                    printc(' ', hchars); // empty interior of square
                 }
-                printc('\n', 1);
+                printc('\n');
             }
         }
     }
@@ -176,7 +177,7 @@ protected:
         Coords(Coord x, Coord y) : x(x), y(y) {}
         Coord x,y;
     };
-    void printc(char ch, unsigned num) {
+    void printc(char ch, unsigned num = 1) {
         while (num-- > 0)
             printf("%c", ch);
     }
@@ -206,14 +207,15 @@ protected:
             return Coords(width_, height_);
         }
     }
+    // Is s rotated by rot equal to *this?
     bool is_equal(Soln const& s, Rotation rot) const {
-        auto r = rotref_dims(rot);
-        if (r.x != width_ || r.y != height_)
+        auto rsize = rotref_dims(rot);
+        if (rsize.x != width_ || rsize.y != height_)
             return false;
         for (Coord x = 0; x < width_; ++x) {
             for (Coord y = 0; y < height_; ++y) {
-                auto r = rotref(x, y, rot);
-                if (board_[XY(x, y, width_)] != s.board_[XY(r.x, r.y, s.width_)])
+                auto s_coords = rotref(x, y, rot);
+                if (board_[XY(x, y, width_)] != s.board_[XY(s_coords.x, s_coords.y, s.width_)])
                     return false;
             }
         }
@@ -238,7 +240,7 @@ public:
         Coord y;
     };
     PrintInfo() {}
-    void init(Coord width, Coord height, VisType vis, VisParam const& vis_param, bool print_space, bool rotref) {
+    void init(Coord width, Coord height, VisType vis, VisParam const& vis_param, bool rotref) {
         soln_list_.clear();
         tile_pos_list_.clear();
         total_ = 0;
@@ -246,8 +248,8 @@ public:
         height_ = height;
         vis_ = vis;
         vis_param_ = vis_param;
-        sp_name_ = print_space ? 3 : 0;
-        sp_coord_ = print_space ? 2 : 0;
+        sp_name_ = vis_param.desc_spaces ? 3 : 0;
+        sp_coord_ = vis_param.desc_spaces ? 2 : 0;
         rotref_ = rotref;
     }
     void add_tile(std::shared_ptr<Shape> orient, Coord x, Coord y, char tile_char) {
@@ -280,7 +282,6 @@ public:
             soln.draw_vis_chars();
             break;
         case VisType::ART:
-            // ASCII art
             soln.draw_vis_art(vis_param_.art_hchars, vis_param_.art_vrows);
             break;
         default: break;
@@ -347,7 +348,7 @@ static void print_soln(int row[], int n)
 }
 
 // ----------------------------------------------------------------
-int print_solns(Board const& board, Tile::Set const& tiles, VisType vis, VisParam const& vis_param, bool print_space, bool print_rev_name, bool rotref)
+int print_solns(Board const& board, Tile::Set const& tiles, VisType vis, VisParam const& vis_param, bool print_rev_name, bool rotref)
 {
     if (all_tiles_size(tiles) != board.size()) {
         // Area of tiles is different from area of board; they will never fit.
@@ -357,7 +358,7 @@ int print_solns(Board const& board, Tile::Set const& tiles, VisType vis, VisPara
     }
 
     // Setup PrintInfo for print_soln.
-    PI.init(board.width(), board.height(), vis, vis_param, print_space, rotref);
+    PI.init(board.width(), board.height(), vis, vis_param, rotref);
 
     // Create the dlx matrix.
     auto dlx = dlx_new();
@@ -401,7 +402,6 @@ int main(int argc, char* argv[])
     std::string board_file;
     VisType vis = VisType::NONE;
     VisParam vis_param (3,1);
-    bool print_space = false;
     bool rotref = false;
     bool print_rev_name = false;
     bool print_count = true;
@@ -416,7 +416,7 @@ int main(int argc, char* argv[])
         case 'l': vis = VisType::DESC; break;
         case 'p': tile_desc = tiles_pentominos; break;
         case 'r': rotref = true; break;
-        case 's': print_space = true; break;
+        case 's': vis_param.desc_spaces = true; break;
         case 't': tile_file = optarg; break;
         case 'u': print_rev_name = true; break;
         case 'v': vis = VisType::CHARS; break;
@@ -444,7 +444,7 @@ int main(int argc, char* argv[])
     if (!setup_tiles(tiles, tile_file, tile_desc))
         return 1;
 
-    int n = print_solns(*board.get(), tiles, vis, vis_param, print_space, print_rev_name, rotref);
+    int n = print_solns(*board.get(), tiles, vis, vis_param, print_rev_name, rotref);
     if (print_count)
         printf("%d solutions\n", n);
     return 0;
