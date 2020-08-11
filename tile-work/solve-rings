@@ -8,12 +8,14 @@ use Getopt::Std;
 
 my $usage = "usage: $0 [-q] [-b board-dir] [-s sol-dir]";
 
-my $min_size = 7;
-my $max_size = 20;
-my $pent_area = 60;
-my $board_dir = 'ring-boards';
-my $sol_dir = 'ring-sols';
-my $tiles = '../tiles';
+my $min_size   = 4;
+my $max_size   = 30;
+my $pent_area  = 60;
+my $board_dir  = 'ring-boards';
+my $sol_dir    = 'ring-sols';
+my $tiles      = '../tiles';
+
+my @boards;
 
 main();
 sub main {
@@ -21,27 +23,36 @@ sub main {
     die "$usage\n" if not getopts('b:s:q', \%opt);
     $board_dir = $opt{b} if $opt{b};
     $sol_dir = $opt{s} if $opt{s};
-    my $item = 1;
+    if (-e $board_dir or -e $sol_dir) {
+        print "$board_dir and/or $sol_dir already exist\n";
+        return;
+    }
     mkdir $board_dir;
     mkdir $sol_dir;
+    my $item = 1;
     for (my $ox = $min_size; $ox <= $max_size; ++$ox) {
     for (my $oy = $min_size; $oy <= $max_size; ++$oy) {
         for (my $ix = 1; $ix <= $ox-2; ++$ix) {
         for (my $iy = 1; $iy <= $oy-2; ++$iy) {
             if ($ox*$oy - $ix*$iy == $pent_area) {
-                my $board_file = "$board_dir/$item";
-                my $sol_file = "$sol_dir/$item";
-                mkboard($board_file, $ox, $oy, $ix, $iy);
-                my $solutions = mksol($board_file, $sol_file);
-                if ($solutions == 0) {
-                    unlink $board_file, $sol_file;
-                } else {
-                    printf "%2d. %-5s - %-5s %s : %5d solutions\n", 
-                            $item, $ox.'x'.$oy, $ix.'x'.$iy, 
-                            (even($ox-$ix) and even($oy-$iy)) ? 'C' : ' ',
-                            $solutions
-                        unless $opt{q};
-                    ++$item;
+                for (my $hx = 1; $hx+$ix+1 < $ox; ++$hx) {
+                for (my $hy = 1; $hy+$iy+1 < $oy; ++$hy) {
+                    my $board_file = "$board_dir/$item";
+                    my $sol_file = "$sol_dir/$item";
+                    my $board = mkboard($board_file, $ox, $oy, $ix, $iy, $hx, $hy);
+                    my $solutions = is_dup_board($board, $ox, $oy) ?
+                        0 : mksol($board_file, $sol_file);
+                    if ($solutions == 0) {
+                        unlink $board_file, $sol_file;
+                    } else {
+                        printf "%4d. %-5s - %-8s : %4d solutions\n",
+                                $item, $ox.'x'.$oy, $ix.'x'.$iy.' @'.$hx.','.$hy,
+                                $solutions
+                            unless $opt{q};
+                        push @boards, $board;
+                        ++$item;
+                    }
+                }
                 }
             }
         }
@@ -51,28 +62,34 @@ sub main {
 }
 
 sub mkboard {
-    my ($board_file, $ox, $oy, $ix, $iy) = @_;
-    my $dx = $ox - $ix;
-    my $dy = $oy - $iy;
-    my $top_rows = int($dy / 2);
-    my $mid_rows = $oy - $dy;
-    my $bot_rows = $oy - $top_rows - $mid_rows;
-    my $left_cols = int($dx / 2);
-    my $mid_cols = $ox - $dx;
-    my $right_cols = $ox - $left_cols - $mid_cols;
+    my ($board_file, $ox, $oy, $ix, $iy, $hx, $hy) = @_;
+    my $mid_rows = $iy;
+    my $top_rows = $hy;
+    my $bot_rows = $oy - $iy - $hy;
+    my $mid_cols = $ix;
+    my $left_cols = $hx;
+    my $right_cols = $ox - $ix - $hx;
 
     my $f;
     die "cannot create $board_file" if not open $f, '>', $board_file;
+    my $board = '';
     for (my $r = 0; $r < $top_rows; ++$r) {
-        print $f '*' x $ox, "\n";
+        my $row = '*' x $ox;
+        print $f "$row\n";
+        $board .= $row;
     }
     for (my $r = 0; $r < $mid_rows; ++$r) {
-        print $f '*' x $left_cols, '.' x $mid_cols, '*' x $right_cols, "\n";
+        my $row = ('*' x $left_cols) . ('.' x $mid_cols) . ('*' x $right_cols);
+        print $f "$row\n";
+        $board .= $row;
     }
     for (my $r = 0; $r < $bot_rows; ++$r) {
-        print $f '*' x $ox, "\n";
+        my $row = '*' x $ox;
+        print $f "$row\n";
+        $board .= $row;
     }
     close $f;
+    return $board;
 }
 
 sub mksol {
@@ -83,7 +100,33 @@ sub mksol {
     return $solutions;
 }
 
-sub even {
-    my ($n) = @_;
-    return (($n % 2) == 0);
+sub is_dup_board {
+    my ($new_board, $ox, $oy) = @_;
+    foreach my $board (@boards) {
+        return 1 if is_equiv_board($board, $new_board, $ox, $oy);
+    }
+    return 0;
+}
+
+sub is_equiv_board {
+    my ($board1, $board2, $ox, $oy) = @_;
+    for (my $i = 0; $i < 8; ++$i) {
+        return 1 if $board1 eq $board2;
+        $board2 = reverse_board($board2, $ox, $oy, ($i != 3));
+        ($ox,$oy) = ($oy,$ox);
+    }
+    return 0;
+}
+
+sub reverse_board {
+    my ($board, $ox, $oy, $r90) = @_;
+    my $b = '';
+    for (my $i = 0; $i < length $board; ++$i) {
+        my $x = int($i / $oy);
+        my $y = $i % $oy;
+        $y = $oy-1 - $y if $r90;
+        my $c = substr($board, $y*$ox + $x, 1);
+        $b .= $c;
+    }
+    return $b;
 }
