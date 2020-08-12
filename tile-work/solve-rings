@@ -47,6 +47,9 @@ sub main {
     }
 }
 
+# ox,oy = outer dimensions
+# ix,iy = dimensions of inner hole
+# hx,hy = position of upper left cell of hole
 sub solve_ring {
     my ($item, $ox, $oy, $ix, $iy, $hx, $hy) = @_;
     my $board_file = "$board_dir/$item";
@@ -68,6 +71,7 @@ sub solve_ring {
     return $item;
 }
 
+# Create board file and return string representing the board.
 sub mkboard {
     my ($board_file, $ox, $oy, $ix, $iy, $hx, $hy) = @_;
     my $f;
@@ -83,6 +87,7 @@ sub mkboard {
     return $board;
 }
 
+# Find all solutions for a board.
 sub mksol {
     my ($board_file, $sol_file) = @_;
     system("$tiles -p '$board_file' > '$sol_file'");
@@ -91,6 +96,7 @@ sub mksol {
     return $solutions;
 }
 
+# Is a board a rotation and/or reflection of an existing solution?
 sub is_dup_board {
     my ($new_board, $ox, $oy) = @_;
     foreach my $board (@boards) {
@@ -99,6 +105,7 @@ sub is_dup_board {
     return 0;
 }
 
+# Are two boards equivalent (rotation/reflection of each other)?
 sub is_equiv_board {
     my ($board1, $board2, $ox, $oy) = @_;
     for (my $i = 0; $i < 8; ++$i) {
@@ -109,6 +116,8 @@ sub is_equiv_board {
     return 0;
 }
 
+# Rotate 90 degrees (if r90==1) or reverse a board.
+# Resulting board is always dimensions (oy,ox).
 sub reverse_board {
     my ($board, $ox, $oy, $r90) = @_;
     my $b = '';
@@ -116,8 +125,7 @@ sub reverse_board {
         my $x = int($i / $oy);
         my $y = $i % $oy;
         $y = $oy-1 - $y if $r90;
-        my $c = substr($board, $y*$ox + $x, 1);
-        $b .= $c;
+        $b .= substr($board, $y*$ox + $x, 1);
     }
     return $b;
 }
