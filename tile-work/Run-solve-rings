@@ -1,5 +1,5 @@
 #!/bin/sh
 
 rm -rf ring-*
-./solve-rings | tee ring-out
+./solve-rings $* | tee ring-out
 ./sum-rings > ring-sum

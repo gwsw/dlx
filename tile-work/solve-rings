@@ -20,23 +20,25 @@ my @boards;
 
 main();
 sub main {
-    die "$usage\n" if not getopts('b:s:q', \%opt);
+    die "$usage\n" if not getopts('b:s:qV', \%opt);
     $board_dir = $opt{b} if $opt{b};
     $sol_dir = $opt{s} if $opt{s};
+    $tiles = "$tiles -V" if $opt{V};
     if (-e $board_dir or -e $sol_dir) {
         print "$board_dir and/or $sol_dir already exist\n";
         return;
     }
     mkdir $board_dir;
     mkdir $sol_dir;
+
     my $item = 1;
-    for (my $ox = $min_size; $ox <= $max_size; ++$ox) {
     for (my $oy = $min_size; $oy <= $max_size; ++$oy) {
-        for (my $ix = 1; $ix <= $ox-2; ++$ix) {
+    for (my $ox = $min_size; $ox <= $max_size; ++$ox) {
         for (my $iy = 1; $iy <= $oy-2; ++$iy) {
+        for (my $ix = 1; $ix <= $ox-2; ++$ix) {
             if ($ox*$oy - $ix*$iy == $pent_area) {
-                for (my $hx = 1; $hx+$ix+1 < $ox; ++$hx) {
                 for (my $hy = 1; $hy+$iy+1 < $oy; ++$hy) {
+                for (my $hx = 1; $hx+$ix+1 < $ox; ++$hx) {
                     $item = solve_ring($item, $ox, $oy, $ix, $iy, $hx, $hy);
                 }
                 }
@@ -108,7 +110,7 @@ sub is_dup_board {
 # Are two boards equivalent (rotation/reflection of each other)?
 sub is_equiv_board {
     my ($board1, $board2, $ox, $oy) = @_;
-    for (my $i = 0; $i < 8; ++$i) {
+    for (my $i = 0; $i < 8; ++$i) { # try all 8 orientations of board2
         return 1 if $board1 eq $board2;
         $board2 = reverse_board($board2, $ox, $oy, ($i != 3));
         ($ox,$oy) = ($oy,$ox);
@@ -120,12 +122,12 @@ sub is_equiv_board {
 # Resulting board is always dimensions (oy,ox).
 sub reverse_board {
     my ($board, $ox, $oy, $r90) = @_;
-    my $b = '';
+    my $rboard = '';
     for (my $i = 0; $i < length $board; ++$i) {
         my $x = int($i / $oy);
         my $y = $i % $oy;
         $y = $oy-1 - $y if $r90;
-        $b .= substr($board, $y*$ox + $x, 1);
+        $rboard .= substr($board, $y*$ox + $x, 1);
     }
-    return $b;
+    return $rboard;
 }
