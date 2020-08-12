@@ -3,7 +3,7 @@ use strict;
 use Getopt::Std;
 
 # Find and solve all pentomino tilings where the board 
-# is a rectangle with one centered rectangular hole.
+# is a rectangle with one rectangular hole.
 # Leaves boards in $board_dir and complete solutions in $sol_dir.
 
 my $usage = "usage: $0 [-q] [-b board-dir] [-s sol-dir]";
@@ -45,8 +45,9 @@ sub main {
                     if ($solutions == 0) {
                         unlink $board_file, $sol_file;
                     } else {
-                        printf "%4d. %-5s - %-8s : %4d solutions\n",
-                                $item, $ox.'x'.$oy, $ix.'x'.$iy.' @'.$hx.','.$hy,
+                        printf "%5d. %-5s - %-12s : %5d solutions\n", $item,
+                                $ox.'x'.$oy, 
+                                $ix.'x'.$iy.' @'.$hx.','.$hy,
                                 $solutions
                             unless $opt{q};
                         push @boards, $board;
@@ -63,28 +64,12 @@ sub main {
 
 sub mkboard {
     my ($board_file, $ox, $oy, $ix, $iy, $hx, $hy) = @_;
-    my $mid_rows = $iy;
-    my $top_rows = $hy;
-    my $bot_rows = $oy - $iy - $hy;
-    my $mid_cols = $ix;
-    my $left_cols = $hx;
-    my $right_cols = $ox - $ix - $hx;
-
     my $f;
     die "cannot create $board_file" if not open $f, '>', $board_file;
     my $board = '';
-    for (my $r = 0; $r < $top_rows; ++$r) {
-        my $row = '*' x $ox;
-        print $f "$row\n";
-        $board .= $row;
-    }
-    for (my $r = 0; $r < $mid_rows; ++$r) {
-        my $row = ('*' x $left_cols) . ('.' x $mid_cols) . ('*' x $right_cols);
-        print $f "$row\n";
-        $board .= $row;
-    }
-    for (my $r = 0; $r < $bot_rows; ++$r) {
-        my $row = '*' x $ox;
+    for (my $y = 0; $y < $oy; ++$y) {
+        my $row = ($y < $hy or $y >= $hy+$iy) ? ('*' x $ox) :
+            (('*' x $hx) . ('.' x $ix) . ('*' x ($ox-$hx-$ix)));
         print $f "$row\n";
         $board .= $row;
     }
