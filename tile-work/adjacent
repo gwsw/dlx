@@ -1,42 +1,53 @@
 #!/usr/bin/perl
 use strict;
 
-# Process tiles patterns to determine stats
+# Process tile patterns to determine stats
 # on which tiles touch which other tiles.
+# Input is board descriptions as produced by "tiles -v".
 
 main();
 sub main {
-    my $total = 0; # total patterns processed
-    my %touch_count; # $touch_count{XY} is number of patterns in which X touches Y
     my %touches; # $touches{XY} == 1 means X touches Y in current pattern
-    my $prev_line = '';
+    my %touch_count; # $touch_count{XY} is number of patterns in which X touches Y
+    my %st = (
+        'total'        => 0, # number of patterns processed
+        'prev_line'    => '',
+        'touch_count'  => \%touch_count,
+        'touches'      => \%touches,
+    );
     while (<>) {
         if (/^\s*$/) { # end of board
-            foreach my $k (keys %touches) {
-                $touch_count{$k}++;
-                delete $touches{$k};
-            }
-            ++$total;
-            $prev_line = '';
+            proc_board_end(\%st);
         } elsif (/^\s+(.*)$/) { # line in a board
-            for (my $i = 0; $i < length $1; ++$i) {
-                if ($prev_line) { # see which tiles touch vertically
-                    my ($c1,$c2) = sort (substr($1,$i,1), substr($prev_line,$i,1));
-                    touch(\%touches, $c1, $c2);
-                }
-                if ($i+1 < length $1) { # see which tiles touch horizontally
-                    my ($c1,$c2) = sort (substr($1,$i,1), substr($1,$i+1,1));
-                    touch(\%touches, $c1, $c2);
-                }
-            }
-            $prev_line = $1;
+            proc_board_line(\%st, $1);
         }
     }
-    printf "   %6d  total\n", $total;
-    foreach my $k (sort { $touch_count{$b} <=> $touch_count{$a} } keys %touch_count) {
-        printf "%s %6d %5.1f%%\n",
-            $k, $touch_count{$k}, 100 * $touch_count{$k} / $total;
+    print_results(\%st);
+}
+
+sub proc_board_end {
+    my ($st) = @_;
+    foreach my $k (keys %{$st->{touches}}) {
+        ${$st->{touch_count}}{$k}++;
+        delete ${$st->{touches}}{$k};
     }
+    $st->{total}++;
+    $st->{prev_line} = '';
+}
+
+sub proc_board_line {
+    my ($st, $line) = @_;
+    for (my $i = 0; $i < length $line; ++$i) {
+        if ($st->{prev_line}) { # see which tiles touch vertically
+            my ($c1,$c2) = sort (substr($line,$i,1), substr($st->{prev_line},$i,1));
+            touch($st->{touches}, $c1, $c2);
+        }
+        if ($i+1 < length $line) { # see which tiles touch horizontally
+            my ($c1,$c2) = sort (substr($line,$i,1), substr($line,$i+1,1));
+            touch($st->{touches}, $c1, $c2);
+        }
+    }
+    $st->{prev_line} = $line;
 }
 
 sub touch {
@@ -45,3 +56,13 @@ sub touch {
     return if $c1 eq '.' or $c2 eq '.';
     $$touches{"$c1$c2"} = 1;
 }
+
+sub print_results {
+    my ($st) = @_;
+    printf "   %6d  total\n", $st->{total};
+    foreach my $k (sort { ${$st->{touch_count}}{$b} <=> ${$st->{touch_count}}{$a} } keys %{$st->{touch_count}}) {
+        printf "%s %6d %5.1f%%\n",
+            $k, ${$st->{touch_count}}{$k}, 100 * ${$st->{touch_count}}{$k} / $st->{total};
+    }
+}
+
