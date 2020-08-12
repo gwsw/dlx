@@ -1,8 +1,9 @@
 char help[] = {
 
-"By default, output is a visual representation of the tiled board.\n"
-"The -l flag produces a list representation of the placement of each tile instead.\n"
-"Using both -l and -v produces both the visual and list output.\n"
+"By default (-v), output is a visual representation of the tiled board\n"
+"with one letter for each cell in the board.\n"
+"The -V flag produces an ASCII art depiction of the board.\n"
+"The -l flag produces a list representation of the placement of each tile.\n"
 "\n"
 "A board file contains a sequence of shape description lines.\n"
 "Each shape description line describes one horizontal row of cells in a shape.\n"

@@ -135,6 +135,7 @@ public:
             return '.';
         return board_[XY(x, y, width_)];
     }
+    // Is given Soln a rotation and/or reflection of *this?
     bool is_rotref(Soln const& s) const {
         return is_equal(s,r0) || is_equal(s,r90) || is_equal(s,r180) || is_equal(s,r270) ||
                is_equal(s,r0r) || is_equal(s,r90r) || is_equal(s,r180r) || is_equal(s,r270r);
