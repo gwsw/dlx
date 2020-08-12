@@ -15,11 +15,11 @@ my $board_dir  = 'ring-boards';
 my $sol_dir    = 'ring-sols';
 my $tiles      = '../tiles';
 
+my %opt;
 my @boards;
 
 main();
 sub main {
-    my %opt;
     die "$usage\n" if not getopts('b:s:q', \%opt);
     $board_dir = $opt{b} if $opt{b};
     $sol_dir = $opt{s} if $opt{s};
@@ -37,22 +37,7 @@ sub main {
             if ($ox*$oy - $ix*$iy == $pent_area) {
                 for (my $hx = 1; $hx+$ix+1 < $ox; ++$hx) {
                 for (my $hy = 1; $hy+$iy+1 < $oy; ++$hy) {
-                    my $board_file = "$board_dir/$item";
-                    my $sol_file = "$sol_dir/$item";
-                    my $board = mkboard($board_file, $ox, $oy, $ix, $iy, $hx, $hy);
-                    my $solutions = is_dup_board($board, $ox, $oy) ?
-                        0 : mksol($board_file, $sol_file);
-                    if ($solutions == 0) {
-                        unlink $board_file, $sol_file;
-                    } else {
-                        printf "%5d. %-5s - %-12s : %5d solutions\n", $item,
-                                $ox.'x'.$oy, 
-                                $ix.'x'.$iy.' @'.$hx.','.$hy,
-                                $solutions
-                            unless $opt{q};
-                        push @boards, $board;
-                        ++$item;
-                    }
+                    $item = solve_ring($item, $ox, $oy, $ix, $iy, $hx, $hy);
                 }
                 }
             }
@@ -60,6 +45,27 @@ sub main {
         }
     }
     }
+}
+
+sub solve_ring {
+    my ($item, $ox, $oy, $ix, $iy, $hx, $hy) = @_;
+    my $board_file = "$board_dir/$item";
+    my $sol_file = "$sol_dir/$item";
+    my $board = mkboard($board_file, $ox, $oy, $ix, $iy, $hx, $hy);
+    my $solutions = is_dup_board($board, $ox, $oy) ?
+        0 : mksol($board_file, $sol_file);
+    if ($solutions == 0) {
+        unlink $board_file, $sol_file;
+    } else {
+        printf "%5d. %-5s - %-12s : %5d solutions\n", $item,
+                $ox.'x'.$oy, 
+                $ix.'x'.$iy.' @'.$hx.','.$hy,
+                $solutions
+            unless $opt{q};
+        push @boards, $board;
+        ++$item;
+    }
+    return $item;
 }
 
 sub mkboard {
