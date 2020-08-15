@@ -45,8 +45,14 @@ public:
     std::string name() const { return name_; }
     Coord width() const { return width_; }
     Coord height() const { return height_; }
-    const std::list<Cell> cells() const { return cells_; }
     size_t size() const { return cells_.size(); }
+
+    typedef std::list<Cell>::iterator iterator;
+    typedef std::list<Cell>::const_iterator const_iterator;
+    iterator begin() { return cells_.begin(); }
+    iterator end() { return cells_.end(); }
+    const_iterator cbegin() const { return cells_.cbegin(); }
+    const_iterator cend() const { return cells_.cend(); }
 
     // Create empty shape.
     explicit Shape(std::string const& name) : name_(name), width_(0), height_(0) {}
@@ -266,15 +272,13 @@ public:
         // Let dlx column be the index of the Cell when we traverse 
         // the list of cells in the standard order.
         int col = 0;
-        for (auto cell : cells()) {
-            if (cell.x() == x && cell.y() == y)
+        for (auto cell = cbegin(); cell != cend(); ++cell) {
+            if (cell->x() == x && cell->y() == y)
                 return col;
             ++col;
         }
         return -1;
     }
 };
-
-#define FOR_EACH_CELL(var,shape) for (auto var : (shape)->cells())
 
 #endif // _TILES_H_

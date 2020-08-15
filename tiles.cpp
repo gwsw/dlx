@@ -261,7 +261,7 @@ public:
         Soln soln(width_, height_);
         for (int i = 0; i < n; ++i) {
             PrintInfo::TilePos tp = tile_pos_list_[row[i]];
-            FOR_EACH_CELL(cell, tp.orient)
+            for (auto cell : *tp.orient)
                 soln.set_cell(tp.x + cell.x(), tp.y + cell.y(), tp.vchar);
         }
         if (!rotref_) {
@@ -319,7 +319,7 @@ static bool create_dlx_row(dlx_t dlx, int dlx_row, Board const& board, Cell::Coo
     // Make a list of the dlx columns that should be set.
     // Don't actually set them until we're sure we are going to use this dlx row.
     std::list<int> dlx_cols;
-    FOR_EACH_CELL(cell, orient) {
+    for (auto cell : *orient) {
         int dlx_col = board.dlx_column(px+cell.x(), py+cell.y());
         if (dlx_col < 0) // tile doesn't fit here; skip this px,py
             return false;
