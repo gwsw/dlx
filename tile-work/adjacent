@@ -1,5 +1,6 @@
 #!/usr/bin/perl
 use strict;
+use Getopt::Std;
 
 # Process tile patterns to determine stats
 # on which tiles touch which other tiles.
@@ -7,6 +8,8 @@ use strict;
 
 main();
 sub main {
+    my %opt;
+    die "usage" if not getopts('l', \%opt);
     my %touches; # $touches{XY} == 1 means X touches Y in current pattern
     my %touch_count; # $touch_count{XY} is number of patterns in which X touches Y
     my %st = (
@@ -15,20 +18,27 @@ sub main {
         'touch_count'  => \%touch_count,
         'touches'      => \%touches,
     );
+    my $curr_id = '';
     while (<>) {
-        if (/^\s*$/) { # end of board
-            proc_board_end(\%st);
+        if (/^\s*#(.*)/) { # comment
+            if ($1 =~ /^pattern\s+(.*)/) {
+                $curr_id = $1;
+            }
+        } elsif (/^\s*$/) { # end of board
+            proc_board_end(\%st, $curr_id);
         } elsif (/^\s+(.*)$/) { # line in a board
             proc_board_line(\%st, $1);
         }
     }
-    print_results(\%st);
+    print_results(\%st, $opt{l});
 }
 
 sub proc_board_end {
-    my ($st) = @_;
+    my ($st, $curr_id) = @_;
     foreach my $k (keys %{$st->{touches}}) {
         ${$st->{touch_count}}{$k}++;
+        ${$st->{all_touch}}{$k} = [] if not ${$st->{all_touch}}{$k};
+        push @{${$st->{all_touch}}{$k}}, $curr_id;
         delete ${$st->{touches}}{$k};
     }
     $st->{total}++;
@@ -58,11 +68,17 @@ sub touch {
 }
 
 sub print_results {
-    my ($st) = @_;
+    my ($st, $long) = @_;
     printf "   %6d  total\n", $st->{total};
     foreach my $k (sort { ${$st->{touch_count}}{$b} <=> ${$st->{touch_count}}{$a} } keys %{$st->{touch_count}}) {
-        printf "%s %6d %5.1f%%\n",
+        printf "%s %6d %5.1f%%",
             $k, ${$st->{touch_count}}{$k}, 100 * ${$st->{touch_count}}{$k} / $st->{total};
+        if ($long) {
+            foreach my $id (@{${$st->{all_touch}}{$k}}) {
+                print ' ', $id;
+            }
+        }
+        print "\n";
     }
 }
 
