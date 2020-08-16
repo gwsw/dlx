@@ -1,4 +1,28 @@
-char help[] = {
+char help1[] = {
+
+"usage: tiles [-vVl] [-crsu1][-n#][-i#][-W#,#] [-p][-x][-t TILES] BOARD\n"
+"       -v = print ASCII picture for each solution\n"
+"       -V = print better ASCII picture for each solution\n"
+"       -l = print list of tiles for each solution\n"
+"\n"
+"       -c = suppress count of solutions\n"
+"       -n = print only first N solutions\n"
+"       -1 = same as -n1\n"
+"       -i = left indent\n"
+"       -r = don't suppress rotations and reflections\n"
+"       -s = print extra spaces for alignment in -l output\n"
+"       -u = use reversed name for reversed tiles in -v output\n"
+"       -W = size of -V cells\n"
+"\n"
+"       -p = use pentomino tiles\n"
+"       -x = use hexomino tiles\n"
+"       -t = use tiles described in TILES file\n"
+"       BOARD is either a file containing a board description,\n"
+"                or \"NxM\" (integer N,M) for a rectangular board\n"
+
+};
+
+char help2[] = {
 
 "By default (-v), output is a visual representation of the tiled board\n"
 "with one letter for each cell in the board.\n"

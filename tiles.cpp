@@ -13,37 +13,20 @@ enum class VisType { NONE, DESC, CHARS, ART };
 
 struct VisParam {
     VisParam(unsigned art_hchars = 0, unsigned art_vrows = 0)
-        : art_hchars(art_hchars), art_vrows(art_vrows), desc_spaces(false) {}
+        : art_hchars(art_hchars), art_vrows(art_vrows), desc_spaces(false), indent(0) {}
     unsigned art_hchars;
     unsigned art_vrows;
     bool desc_spaces;
+    unsigned indent;
 };
 
 extern const char tiles_pentominos[], tiles_hexominos[];
-extern const char help[];
-
-// ----------------------------------------------------------------
-static void usage1()
-{
-    printf("usage: tiles [-vVlsru][-W#,#] [-p][-x][-t TILES] BOARD\n");
-    printf("       -v = print ASCII picture for each solution\n");
-    printf("       -V = print better ASCII picture for each solution\n");
-    printf("       -W = size of -V cells\n");
-    printf("       -l = print list of tiles for each solution\n");
-    printf("       -s = print extra spaces in -l output for alignment\n");
-    printf("       -r = don't suppress rotations and reflections\n");
-    printf("       -u = use reversed name for reversed tiles in -v display\n");
-    printf("       -p = use pentomino tiles\n");
-    printf("       -x = use hexomino tiles\n");
-    printf("       -t = use tiles described in TILES file\n");
-    printf("       BOARD is either a file containing a board description,\n");
-    printf("                or \"NxM\" (integer N,M) for a rectangular board\n");
-}
+extern const char help1[], help2[];
 
 // ----------------------------------------------------------------
 static int usage()
 {
-    usage1();
+    printf("%s\n", help1);
     printf(" \"tiles help\" for more information\n");
     return 1;
 }
@@ -51,8 +34,8 @@ static int usage()
 // ----------------------------------------------------------------
 static int print_help()
 {
-    usage1();
-    printf("%s\n", help);
+    printf("%s\n", help1);
+    printf("%s\n", help2);
     return 0;
 }
 
@@ -60,7 +43,7 @@ static int print_help()
 static bool setup_board(std::shared_ptr<Board>& board, std::string const& board_file)
 {
     if (board_file.empty()) {
-        fprintf(stderr, "error: no board description\n");
+        fprintf(stderr, "error: no board selected\n");
         return false;
     }
     bool ok = false;
@@ -112,7 +95,7 @@ static bool setup_tiles(Tile::Set& tiles, std::string const& tile_file, std::str
             if (!ok) fprintf(stderr, "error: cannot parse tile file %s\n", tile_file.c_str());
         }
     } else {
-        fprintf(stderr, "error: no tile description\n");
+        fprintf(stderr, "error: no tile set selected\n");
     }
     return ok;
 }
@@ -140,18 +123,23 @@ public:
         return is_equal(s,r0) || is_equal(s,r90) || is_equal(s,r180) || is_equal(s,r270) ||
                is_equal(s,r0r) || is_equal(s,r90r) || is_equal(s,r180r) || is_equal(s,r270r);
     }
-    void draw_vis_chars() {
+    void draw_indent(unsigned indent) {
+        for (unsigned i = 0; i < indent; ++i)
+            printf(" ");
+    }
+    void draw_vis_chars(unsigned indent) {
         for (Coord y = 0; y < height_; ++y) {
-            printf("    ");
+            draw_indent(indent);
             for (Coord x = 0; x < width_; ++x)
                 printf("%c", cell(x,y));
             printf("\n");
         }
         printf("\n");
     }
-    void draw_vis_art(unsigned hchars, unsigned vrows) {
+    void draw_vis_art(unsigned hchars, unsigned vrows, unsigned indent) {
         for (Coord y = 0; y <= height_; ++y) {
             // Draw row vertically-between squares.
+            draw_indent(indent);
             for (Coord x = 0; x <= width_; ++x) {
                 char br = cell(x,y);
                 char bl = cell(x-1,y);
@@ -165,6 +153,7 @@ public:
             printc('\n');
             // Draw row(s) vertically-interior to squares.
             for (int nrow = 0; nrow < vrows; ++nrow) {
+                draw_indent(indent);
                 for (Coord x = 0; x <= width_; ++x) {
                     printc(same_cell(x, y, x-1, y) ? ' ' : '|'); // vert line
                     printc(' ', hchars); // empty interior of square
@@ -241,7 +230,7 @@ public:
         Coord y;
     };
     PrintInfo() {}
-    void init(Coord width, Coord height, VisType vis, VisParam const& vis_param, bool rotref) {
+    void init(Coord width, Coord height, VisType vis, VisParam const& vis_param, bool rotref, unsigned print_num) {
         soln_list_.clear();
         tile_pos_list_.clear();
         total_ = 0;
@@ -252,6 +241,7 @@ public:
         sp_name_ = vis_param.desc_spaces ? 3 : 0;
         sp_coord_ = vis_param.desc_spaces ? 2 : 0;
         rotref_ = rotref;
+        print_num_ = print_num;
     }
     void add_tile(std::shared_ptr<Shape> orient, Coord x, Coord y, char tile_char) {
         tile_pos_list_.push_back(PrintInfo::TilePos(orient, x, y, tile_char));
@@ -272,6 +262,7 @@ public:
         soln_list_.push_back(soln);
         switch (vis_) {
         case VisType::DESC:
+            soln.draw_indent(vis_param_.indent);
             for (int i = 0; i < n; ++i) {
                 PrintInfo::TilePos tp = tile_pos_list_[row[i]];
                 printf("%-*s(%*d,%*d) ", sp_name_, tp.orient->name().c_str(),
@@ -280,14 +271,18 @@ public:
             printf("\n");
             break;
         case VisType::CHARS:
-            soln.draw_vis_chars();
+            soln.draw_vis_chars(vis_param_.indent);
             break;
         case VisType::ART:
-            soln.draw_vis_art(vis_param_.art_hchars, vis_param_.art_vrows);
+            soln.draw_vis_art(vis_param_.art_hchars, vis_param_.art_vrows, vis_param_.indent);
             break;
         default: break;
         }
         total_++;
+        if (print_num_ > 0 && total_ >= print_num_) {
+            // Ugh. There's no way to tell dlx to stop.
+            exit(0);
+        }
     }
 private:
     std::vector<TilePos> tile_pos_list_;
@@ -300,6 +295,7 @@ private:
     int sp_name_;
     int sp_coord_;
     int total_;
+    unsigned print_num_;
 };
 
 static PrintInfo PI;
@@ -349,7 +345,7 @@ static void print_soln(int row[], int n)
 }
 
 // ----------------------------------------------------------------
-int print_solns(Board const& board, Tile::Set const& tiles, VisType vis, VisParam const& vis_param, bool print_rev_name, bool rotref)
+int print_solns(Board const& board, Tile::Set const& tiles, VisType vis, VisParam const& vis_param, bool print_rev_name, bool rotref, unsigned print_num)
 {
     if (all_tiles_size(tiles) != board.size()) {
         // Area of tiles is different from area of board; they will never fit.
@@ -359,7 +355,7 @@ int print_solns(Board const& board, Tile::Set const& tiles, VisType vis, VisPara
     }
 
     // Setup PrintInfo for print_soln.
-    PI.init(board.width(), board.height(), vis, vis_param, rotref);
+    PI.init(board.width(), board.height(), vis, vis_param, rotref, print_num);
 
     // Create the dlx matrix.
     auto dlx = dlx_new();
@@ -406,15 +402,19 @@ int main(int argc, char* argv[])
     bool rotref = false;
     bool print_rev_name = false;
     bool print_count = true;
+    unsigned print_num = 0;
 
     if (argc > 1 && (strcmp(argv[1], "help") == 0 || strcmp(argv[1], "--help") == 0))
         return print_help();
 
     int opt;
-    while ((opt = getopt(argc, argv, "chlprst:uvVW:x?")) != -1) {
+    while ((opt = getopt(argc, argv, "1chi:ln:prst:uvVW:x?")) != -1) {
         switch (opt) {
+        case '1': print_num = 1; break;
         case 'c': print_count = false; break;
+        case 'i': vis_param.indent = atoi(optarg); break;
         case 'l': vis = VisType::DESC; break;
+        case 'n': print_num = atoi(optarg); break;
         case 'p': tile_desc = tiles_pentominos; break;
         case 'r': rotref = true; break;
         case 's': vis_param.desc_spaces = true; break;
@@ -445,7 +445,7 @@ int main(int argc, char* argv[])
     if (!setup_tiles(tiles, tile_file, tile_desc))
         return 1;
 
-    int n = print_solns(*board.get(), tiles, vis, vis_param, print_rev_name, rotref);
+    int n = print_solns(*board.get(), tiles, vis, vis_param, print_rev_name, rotref, print_num);
     if (print_count)
         printf("%d solutions\n", n);
     return 0;
