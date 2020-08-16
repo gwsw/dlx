@@ -63,10 +63,36 @@ public:
 
     // Add a Cell to a Shape.
     void add(Coord x, Coord y) {
+        if (std::find(cells_.begin(), cells_.end(), Cell(x,y)) != cells_.end())
+            return;
         if (width_ <= x) width_ = x+1;
         if (height_ <= y) height_ = y+1;
         cells_.push_back(Cell(x,y));
         cells_.sort(); // keep sorted so operator== is simple
+    }
+
+    // Remove a Cell from a Shape.
+    void remove(Coord x, Coord y) {
+        for (iterator cell = begin(); cell != end(); ++cell) {
+            if (*cell == Cell(x,y)) {
+                cells_.erase(cell);
+                return;
+            }
+        }
+    }
+
+    // Add a rectangle of Cells to a Shape.
+    void add(Coord x, Coord y, Coord width, Coord height) {
+        for (Coord yi = y; yi < y+height; ++yi)
+            for (Coord xi = x; xi < x+width; ++xi)
+                add(xi,yi);
+    }
+
+    // Remove a rectangle of Cells from a Shape.
+    void remove(Coord x, Coord y, Coord width, Coord height) {
+        for (Coord yi = y; yi < y+height; ++yi)
+            for (Coord xi = x; xi < x+width; ++xi)
+                remove(xi,yi);
     }
 
     // Are two shapes the same?
@@ -231,6 +257,7 @@ class Board : public Shape {
 public:
     explicit Board(std::string const& name) : Shape(name) {}
     virtual ~Board() = default;
+    virtual bool inited() const { return true; }
     virtual int dlx_column(Coord x, Coord y) const =0;
     bool parse(LineReader& rd) {
         // Board file is just a sequence of Shape lines.
@@ -252,9 +279,7 @@ public:
 class RectBoard : public Board {
 public:
     explicit RectBoard(std::string const& name, Coord width, Coord height) : Board(name) {
-        for (Coord x = 0; x < width; ++x)
-            for (Coord y = 0; y < height; ++y)
-                add(x,y);
+        add(0, 0, width, height);
     }
     virtual ~RectBoard() = default;
     virtual int dlx_column(Coord x, Coord y) const override {
@@ -266,8 +291,72 @@ public:
 // A ShapeBoard is an arbitrarily shaped Board (not necessarily rectangular).
 class ShapeBoard : public Board {
 public:
-    explicit ShapeBoard(std::string const& name) : Board(name) {}
+    explicit ShapeBoard(std::string const& name, std::string const& desc = "")
+        : Board(name), inited_(false) {
+        if (init(desc)) inited_ = true;
+    }
     virtual ~ShapeBoard() = default;
+    virtual bool inited() const override { return inited_; }
+    bool init(std::string const& desc) {
+        class Parser {
+        public:
+            Parser(std::string const& str) : str_(str), ix_(0) {}
+            unsigned get_int() {
+                if (at_end()) throw std::runtime_error("missing decimal integer");
+                char* p;
+                auto num = strtoul(str_.c_str()+ix_, &p, 0);
+                auto oix = ix_;
+                ix_ = p - str_.c_str();
+                if (ix_ == oix) throw std::runtime_error("invalid decimal integer");
+                return num;
+            }
+            bool skip_char(char ch, bool return_error = false) {
+                if (getc() == ch) return true;
+                ungetc();
+                if (return_error) return false;
+                throw std::runtime_error("missing "+std::string(1,ch));
+            }
+            bool at_end() const {
+                return ix_ >= str_.size();
+            }
+            char getc() {
+                if (at_end()) return '\0';
+                return str_[ix_++];
+            }
+            void ungetc() {
+                --ix_;
+            }
+        private:
+            std::string str_;
+            size_t ix_;
+        };
+        if (desc.empty()) return true;
+        Parser parser ((desc[0] == '+') ? desc : std::string("+0,0:") + desc);
+        while (!parser.at_end()) {
+            try {
+                auto action = parser.getc();
+                unsigned x = parser.get_int();
+                parser.skip_char(',');
+                unsigned y = parser.get_int();
+                unsigned width = 1;
+                unsigned height = 1;
+                if (parser.skip_char(':', true)) {
+                    width = parser.get_int();
+                    parser.skip_char('x');
+                    height = parser.get_int();
+                }
+                switch (action) {
+                case '+': add(x, y, width, height); break;
+                case '-': remove(x, y, width, height); break;
+                default: throw std::runtime_error("invalid char "+std::string(1,action));
+                }
+            } catch (std::runtime_error& e) {
+                fprintf(stderr, "error: %s\n", e.what());
+                return false;
+            }
+        }
+        return true;
+    }
     virtual int dlx_column(Coord x, Coord y) const override {
         // Let dlx column be the index of the Cell when we traverse 
         // the list of cells in the standard order.
@@ -279,6 +368,8 @@ public:
         }
         return -1;
     }
+private:
+    bool inited_;
 };
 
 #endif // _TILES_H_

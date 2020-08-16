@@ -47,7 +47,7 @@ static bool setup_board(std::shared_ptr<Board>& board, std::string const& board_
         return false;
     }
     bool ok = false;
-    Cell::Coord board_width, board_height;
+    unsigned board_width, board_height;
     FILE* f = fopen(board_file.c_str(), "r");
     if (f != NULL) {
         board.reset(new ShapeBoard(board_file));
@@ -55,12 +55,16 @@ static bool setup_board(std::shared_ptr<Board>& board, std::string const& board_
         ok = board->parse(rd);
         fclose(f);
         if (!ok) fprintf(stderr, "error: cannot parse board file %s\n", board_file.c_str());
-    } else if (sscanf(board_file.c_str(), "%ux%u", &board_width, &board_height) == 2 &&
-            board_width > 0 && board_height > 0) {
-        board.reset(new RectBoard(board_file, board_width, board_height));
-        ok = true;
     } else {
-        fprintf(stderr, "error: cannot open board file %s\n", board_file.c_str());
+        if (sscanf(board_file.c_str(), "%ux%u", &board_width, &board_height) == 2 &&
+                board_width > 0 && board_height > 0 &&
+                board_file[strcspn(board_file.c_str(), "+-")] == '\0') {
+            board.reset(new RectBoard("rect-board", board_width, board_height));
+        } else {
+            board.reset(new ShapeBoard("desc-board", board_file));
+        }
+        ok = board->inited();
+        if (!ok) fprintf(stderr, "error: cannot understand board description \"%s\"\n", board_file.c_str());
     }
     return ok;
 }
