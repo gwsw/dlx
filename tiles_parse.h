@@ -84,41 +84,43 @@ bool Board::parse(LineReader& rd) {
 }
 
 // ----------------------------------------------------------------
+class BoardDescParser {
+public:
+    BoardDescParser(std::string const& str) : str_(str), ix_(0) {}
+    unsigned get_int() {
+        if (at_end()) throw std::runtime_error("missing decimal integer");
+        char* p;
+        auto num = strtoul(str_.c_str()+ix_, &p, 0);
+        auto oix = ix_;
+        ix_ = p - str_.c_str();
+        if (ix_ == oix) throw std::runtime_error("invalid decimal integer");
+        return num;
+    }
+    bool skip_char(char ch, bool return_error = false) {
+        if (getc() == ch) return true;
+        ungetc();
+        if (return_error) return false;
+        throw std::runtime_error("missing "+std::string(1,ch));
+    }
+    bool at_end() const {
+        return ix_ >= str_.size();
+    }
+    char getc() {
+        if (at_end()) throw std::runtime_error("unexpected end of string");
+        return str_[ix_++];
+    }
+    void ungetc() {
+        --ix_;
+    }
+private:
+    std::string str_;
+    size_t ix_;
+};
+
+// ----------------------------------------------------------------
 bool ShapeBoard::init(std::string const& desc) {
-    class Parser {
-    public:
-        Parser(std::string const& str) : str_(str), ix_(0) {}
-        unsigned get_int() {
-            if (at_end()) throw std::runtime_error("missing decimal integer");
-            char* p;
-            auto num = strtoul(str_.c_str()+ix_, &p, 0);
-            auto oix = ix_;
-            ix_ = p - str_.c_str();
-            if (ix_ == oix) throw std::runtime_error("invalid decimal integer");
-            return num;
-        }
-        bool skip_char(char ch, bool return_error = false) {
-            if (getc() == ch) return true;
-            ungetc();
-            if (return_error) return false;
-            throw std::runtime_error("missing "+std::string(1,ch));
-        }
-        bool at_end() const {
-            return ix_ >= str_.size();
-        }
-        char getc() {
-            if (at_end()) return '\0';
-            return str_[ix_++];
-        }
-        void ungetc() {
-            --ix_;
-        }
-    private:
-        std::string str_;
-        size_t ix_;
-    };
     if (desc.empty()) return true;
-    Parser parser ((desc[0] == '+') ? desc : std::string("+0,0:") + desc);
+    BoardDescParser parser ((desc[0] == '+') ? desc : std::string("+0,0:") + desc);
     while (!parser.at_end()) {
         try {
             auto action = parser.getc();

@@ -27,7 +27,7 @@ dlx_raw: dlx_raw.o dlx.o blt.o
 	$(CC) $(CFLAGS) -o $@ $^
 
 TILES_OBJ = tiles.o tileset_pent.o tileset_hex.o tiles_help.o dlx.o
-tiles.o: tiles.h
+tiles.o: tiles.h tiles_parse.h
 tiles: $(TILES_OBJ)
 	$(CCC) $(CCFLAGS) -o $@ $(TILES_OBJ)
 

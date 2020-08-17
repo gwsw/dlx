@@ -123,7 +123,7 @@ public:
         return board_[XY(x, y, width_)];
     }
     // Is given Soln a rotation and/or reflection of *this?
-    bool is_rotref(Soln const& s) const {
+    bool is_equiv(Soln const& s) const {
         return is_equal(s,r0) || is_equal(s,r90) || is_equal(s,r180) || is_equal(s,r270) ||
                is_equal(s,r0r) || is_equal(s,r90r) || is_equal(s,r180r) || is_equal(s,r270r);
     }
@@ -145,21 +145,17 @@ public:
             // Draw row vertically-between squares.
             draw_indent(indent);
             for (Coord x = 0; x <= width_; ++x) {
-                char br = cell(x,y);
-                char bl = cell(x-1,y);
-                char tr = cell(x,y-1);
-                char tl = cell(x-1,y-1);
-                bool hh = (tl == tr && bl == br);
-                bool vv = (tl == bl && tr == br);
+                bool hh = same_cell(x,y-1, x-1,y-1) && same_cell(x,y, x-1,y);
+                bool vv = same_cell(x-1,y, x-1,y-1) && same_cell(x,y, x,y-1);
                 printc((hh && vv) ? ' ' : hh ? '-' : vv ? '|' : '+'); // corner
-                printc(same_cell(x, y, x, y-1) ? ' ' : '-', hchars); // horz line
+                printc(same_cell(x,y, x,y-1) ? ' ' : '-', hchars); // horz line
             }
             printc('\n');
             // Draw row(s) vertically-interior to squares.
             for (int nrow = 0; nrow < vrows; ++nrow) {
                 draw_indent(indent);
                 for (Coord x = 0; x <= width_; ++x) {
-                    printc(same_cell(x, y, x-1, y) ? ' ' : '|'); // vert line
+                    printc(same_cell(x,y, x-1,y) ? ' ' : '|'); // vert line
                     printc(' ', hchars); // empty interior of square
                 }
                 printc('\n');
@@ -209,7 +205,7 @@ protected:
         for (Coord x = 0; x < width_; ++x) {
             for (Coord y = 0; y < height_; ++y) {
                 auto s_coords = rotref(x, y, rot);
-                if (board_[XY(x, y, width_)] != s.board_[XY(s_coords.x, s_coords.y, s.width_)])
+                if (cell(x,y) != s.cell(s_coords.x, s_coords.y))
                     return false;
             }
         }
@@ -260,7 +256,7 @@ public:
         }
         if (!rotref_) {
             for (auto s2 : soln_list_)
-                if (soln.is_rotref(s2))
+                if (soln.is_equiv(s2))
                     return;
         }
         soln_list_.push_back(soln);
@@ -384,7 +380,7 @@ int print_solns(Board const& board, Tile::Set const& tiles, VisType vis, VisPara
             }
         }
         if (!tile_fits) {
-            printf("error: board is too narrow to fit some tiles\n");
+            printf("error: board is too narrow to fit tile %s\n", tile->name().c_str());
             return 0;
         }
         ++tile_num;
