@@ -61,6 +61,33 @@ public:
     Shape(Shape const& shape, std::string const& name = "") :
         name_(!name.empty() ? name : shape.name()), cells_(shape.cells_), width_(shape.width_), height_(shape.height_) {}
 
+    // Are two shapes the same?
+    bool operator==(const Shape& shape) const {
+        return cells_ == shape.cells_;
+    }
+
+    // Parse one shape descriptor line.
+    //   * = occupied cell
+    //   . = unoccupied cell
+    bool parse_shape_line(std::string const& line, Coord y);
+
+    // Return a new shape: this shape reversed.
+    Shape reverse(std::string const& name) const {
+        Shape s (name);
+        for (auto const cell : cells_)
+            s.add(cell.x(), vflip(cell.y()));
+        return s;
+    }
+
+    // Return a new shape: this shape rotated 90 degrees clockwise.
+    Shape rotate90(std::string const& name) const {
+        Shape s (name);
+        for (auto const cell : cells_)
+            s.add(vflip(cell.y()), cell.x());
+        return s;
+    }
+
+protected:
     // Add a Cell to a Shape.
     void add(Coord x, Coord y) {
         if (std::find(cells_.begin(), cells_.end(), Cell(x,y)) != cells_.end())
@@ -95,33 +122,6 @@ public:
                 remove(xi,yi);
     }
 
-    // Are two shapes the same?
-    bool operator==(const Shape& shape) const {
-        return cells_ == shape.cells_;
-    }
-
-    // Parse one shape descriptor line.
-    //   * = occupied cell
-    //   . = unoccupied cell
-    bool parse_shape_line(std::string const& line, Coord y);
-
-    // Return a new shape: this shape reversed.
-    Shape reverse(std::string const& name) const {
-        Shape s (name);
-        for (auto const cell : cells_)
-            s.add(cell.x(), vflip(cell.y()));
-        return s;
-    }
-
-    // Return a new shape: this shape rotated 90 degrees clockwise.
-    Shape rotate90(std::string const& name) const {
-        Shape s (name);
-        for (auto const cell : cells_)
-            s.add(vflip(cell.y()), cell.x());
-        return s;
-    }
-
-protected:
     void clear() { width_ = height_ = 0; cells_.clear(); }
     void name(std::string const& name) { name_ = name; }
     Coord vflip(Coord y) const { return height_ - y - 1; }
