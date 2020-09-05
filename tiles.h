@@ -243,6 +243,4 @@ private:
     bool inited_;
 };
 
-#include "tiles_parse.h"
-
 #endif // _TILES_H_

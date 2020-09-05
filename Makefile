@@ -26,8 +26,8 @@ suds: suds.o dlx.o blt.o
 dlx_raw: dlx_raw.o dlx.o blt.o
 	$(CC) $(CFLAGS) -o $@ $^
 
-TILES_OBJ = tiles.o tileset_pent.o tileset_hex.o tiles_help.o dlx.o
-tiles.o: tiles.h tiles_parse.h
+TILES_OBJ = tiles.o tiles_parse.o tileset_pent.o tileset_hex.o tiles_help.o dlx.o
+tiles.o: tiles.h 
 tiles: $(TILES_OBJ)
 	$(CCC) $(CCFLAGS) -o $@ $(TILES_OBJ)
 

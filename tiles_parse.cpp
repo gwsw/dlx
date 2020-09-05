@@ -1,5 +1,5 @@
-#ifndef _TILES_PARSE_H_
-#define _TILES_PARSE_H_
+#include <stdio.h>
+#include "tiles.h"
 
 // ----------------------------------------------------------------
 bool Shape::parse_shape_line(std::string const& line, Coord y) {
@@ -146,5 +146,3 @@ bool ShapeBoard::init(std::string const& desc) {
     }
     return true;
 }
-
-#endif // _TILES_PARSE_H_
