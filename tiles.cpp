@@ -47,7 +47,6 @@ static bool setup_board(std::shared_ptr<Board>& board, std::string const& board_
         return false;
     }
     bool ok = false;
-    unsigned board_width, board_height;
     FILE* f = fopen(board_file.c_str(), "r");
     if (f != NULL) {
         board.reset(new ShapeBoard(board_file));
@@ -56,6 +55,7 @@ static bool setup_board(std::shared_ptr<Board>& board, std::string const& board_
         fclose(f);
         if (!ok) fprintf(stderr, "error: cannot parse board file %s\n", board_file.c_str());
     } else {
+        unsigned board_width, board_height;
         if (sscanf(board_file.c_str(), "%ux%u", &board_width, &board_height) == 2 &&
                 board_width > 0 && board_height > 0 &&
                 board_file[strcspn(board_file.c_str(), "+-")] == '\0') {
@@ -81,26 +81,26 @@ static bool parse_tiles(LineReader& rd, Tile::Set& tiles)
 }
 
 // ----------------------------------------------------------------
-static bool setup_tiles(Tile::Set& tiles, std::string const& tile_file, std::string const& tile_desc)
+static bool setup_tiles_desc(Tile::Set& tiles, std::string const& tile_desc)
 {
-    bool ok = false;
-    if (!tile_desc.empty()) {
-        StringLineReader rd (tile_desc);
-        ok = parse_tiles(rd, tiles);
-        if (!ok) fprintf(stderr, "internal error: cannot parse tile desc\n");
-    } else if (!tile_file.empty()) {
-        FILE* f = fopen(tile_file.c_str(), "r");
-        if (f == NULL) {
-            fprintf(stderr, "error: cannot open tile file %s\n", tile_file.c_str());
-        } else {
-            FileLineReader rd (f);
-            ok = parse_tiles(rd, tiles);
-            fclose(f);
-            if (!ok) fprintf(stderr, "error: cannot parse tile file %s\n", tile_file.c_str());
-        }
-    } else {
-        fprintf(stderr, "error: no tile set selected\n");
+    StringLineReader rd (tile_desc);
+    bool ok = parse_tiles(rd, tiles);
+    if (!ok) fprintf(stderr, "internal error: cannot parse tile desc\n");
+    return ok;
+}
+
+// ----------------------------------------------------------------
+static bool setup_tiles_file(Tile::Set& tiles, std::string const& tile_file)
+{
+    FILE* f = fopen(tile_file.c_str(), "r");
+    if (f == NULL) {
+        fprintf(stderr, "error: cannot open tile file %s\n", tile_file.c_str());
+        return false;
     }
+    FileLineReader rd (f);
+    bool ok = parse_tiles(rd, tiles);
+    fclose(f);
+    if (!ok) fprintf(stderr, "error: cannot parse tile file %s\n", tile_file.c_str());
     return ok;
 }
 
@@ -442,8 +442,15 @@ int main(int argc, char* argv[])
         return usage();
 
     Tile::Set tiles;
-    if (!setup_tiles(tiles, tile_file, tile_desc))
-        return 1;
+    if (!tile_desc.empty()) {
+        if (!setup_tiles_desc(tiles, tile_desc))
+            return 1;
+    } else if (!tile_file.empty()) {
+        if (!setup_tiles_file(tiles, tile_file))
+            return 1;
+    } else {
+        fprintf(stderr, "error: no tile set selected\n");
+    }
 
     int n = print_solns(*board.get(), tiles, vis, vis_param, print_rev_name, rotref, print_num);
     if (print_count)
