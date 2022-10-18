@@ -152,7 +152,7 @@ public:
             }
             printc('\n');
             // Draw row(s) vertically-interior to squares.
-            for (int nrow = 0; nrow < vrows; ++nrow) {
+            for (unsigned nrow = 0; nrow < vrows; ++nrow) {
                 draw_indent(indent);
                 for (Coord x = 0; x <= width_; ++x) {
                     printc(same_cell(x,y, x-1,y) ? ' ' : '|'); // vert line
@@ -294,7 +294,7 @@ private:
     bool rotref_;
     int sp_name_;
     int sp_coord_;
-    int total_;
+    unsigned total_;
     unsigned print_num_;
 };
 
