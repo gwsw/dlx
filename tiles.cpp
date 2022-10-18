@@ -345,20 +345,9 @@ static void print_soln(int row[], int n)
 }
 
 // ----------------------------------------------------------------
-int print_solns(Board const& board, Tile::Set const& tiles, VisType vis, VisParam const& vis_param, bool print_rev_name, bool rotref, unsigned print_num, bool rev)
-{
-    if (all_tiles_size(tiles) != board.size()) {
-        // Area of tiles is different from area of board; they will never fit.
-        printf("error: tiles cover %d squares but board is %d squares\n",
-            (int) all_tiles_size(tiles), (int) board.size());
-        return 0;
-    }
-
-    // Setup PrintInfo for print_soln.
-    PI.init(board.width(), board.height(), vis, vis_param, rotref, print_num);
-
+static dlx_t create_dlx_matrix(Board const& board, Tile::Set const& tiles, bool print_rev_name, bool rev) {
     // Create the dlx matrix.
-    auto dlx = dlx_new();
+    dlx_t dlx = dlx_new();
     int dlx_row = 0;
     int tile_num = 0;
     for (auto tile : tiles) {
@@ -381,10 +370,27 @@ int print_solns(Board const& board, Tile::Set const& tiles, VisType vis, VisPara
         }
         if (!tile_fits) {
             printf("error: board is too narrow to fit tile %s\n", tile->name().c_str());
-            return 0;
+            return NULL;
         }
         ++tile_num;
     }
+    return dlx;
+}
+
+// ----------------------------------------------------------------
+int print_solns(Board const& board, Tile::Set const& tiles, VisType vis, VisParam const& vis_param, bool print_rev_name, bool rotref, unsigned print_num, bool rev)
+{
+    if (all_tiles_size(tiles) != board.size()) {
+        // Area of tiles is different from area of board; they will never fit.
+        printf("error: tiles cover %d squares but board is %d squares\n",
+            (int) all_tiles_size(tiles), (int) board.size());
+        return 0;
+    }
+
+    // Set up PrintInfo for print_soln.
+    PI.init(board.width(), board.height(), vis, vis_param, rotref, print_num);
+    dlx_t dlx = create_dlx_matrix(board, tiles, print_rev_name, rev);
+
     // Run the dlx solver.
     dlx_forall_cover(dlx, print_soln);
     dlx_clear(dlx);
