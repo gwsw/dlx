@@ -147,7 +147,7 @@ public:
     std::string rev_name() const { return rev_name_; }
 
     // Return a list of all orientations of this Tile.
-    std::list<std::shared_ptr<Shape> > all_orientations() const {
+    std::list<std::shared_ptr<Shape> > all_orientations(bool rev = true) const {
         std::list<std::shared_ptr<Shape> > list;
         Shape s (*this, name()); // base Shape
         add_unique(list, s);
@@ -157,14 +157,16 @@ public:
         add_unique(list, s);
         s = s.rotate90(name()+"!"); // bang = rotate 270
         add_unique(list, s);
-        s = s.reverse(rev_name()+"!"); // reversed 270
-        add_unique(list, s);
-        s = s.rotate90(rev_name()); // reversed base
-        add_unique(list, s);
-        s = s.rotate90(rev_name()+"'"); // reversed 90
-        add_unique(list, s);
-        s = s.rotate90(rev_name()+"\""); // reversed 180
-        add_unique(list, s);
+        if (rev) {
+            s = s.reverse(rev_name()+"!"); // reversed 270
+            add_unique(list, s);
+            s = s.rotate90(rev_name()); // reversed base
+            add_unique(list, s);
+            s = s.rotate90(rev_name()+"'"); // reversed 90
+            add_unique(list, s);
+            s = s.rotate90(rev_name()+"\""); // reversed 180
+            add_unique(list, s);
+        }
         return list;
     }
 

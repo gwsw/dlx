@@ -52,14 +52,18 @@ bool Tile::parse_tile_line(std::string const& line) {
         rev_name_ = line.substr(slash+1);
     } else { // no rev name specified
         new_name = line.substr(namex);
-        if (rev_type_ == RevType::RevCase) {
+        switch (rev_type_) {
+        case RevType::RevCase: {
             char ch = line[namex];
             ch = isupper(ch) ? tolower(ch) : islower(ch) ? toupper(ch) : ch;
             rev_name_ = std::string(1, ch) + line.substr(namex+1);
-        } else if (rev_type_ == RevType::AppendR) {
+            break; }
+        case RevType::AppendR:
             rev_name_ = line.substr(namex) + "r";
-        } else {
+            break;
+        default:
             rev_name_ = new_name;
+            break;
         }
     }
     if (name().size() > 0)
@@ -99,8 +103,8 @@ public:
     bool skip_char(char ch, bool return_error = false) {
         if (getc() == ch) return true;
         ungetc();
-        if (return_error) return false;
-        throw std::runtime_error("missing "+std::string(1,ch));
+        if (!return_error) throw std::runtime_error("missing "+std::string(1,ch));
+        return false;
     }
     bool at_end() const {
         return ix_ >= str_.size();

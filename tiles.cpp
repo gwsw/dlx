@@ -345,7 +345,7 @@ static void print_soln(int row[], int n)
 }
 
 // ----------------------------------------------------------------
-int print_solns(Board const& board, Tile::Set const& tiles, VisType vis, VisParam const& vis_param, bool print_rev_name, bool rotref, unsigned print_num)
+int print_solns(Board const& board, Tile::Set const& tiles, VisType vis, VisParam const& vis_param, bool print_rev_name, bool rotref, unsigned print_num, bool rev)
 {
     if (all_tiles_size(tiles) != board.size()) {
         // Area of tiles is different from area of board; they will never fit.
@@ -363,7 +363,7 @@ int print_solns(Board const& board, Tile::Set const& tiles, VisType vis, VisPara
     int tile_num = 0;
     for (auto tile : tiles) {
         bool tile_fits = false;
-        auto orients = tile->all_orientations();
+        auto orients = tile->all_orientations(rev);
         for (auto orient : orients) {
             // Place tile shape at every possible px,py on board
             // and make a dlx row for each such position.
@@ -402,13 +402,14 @@ int main(int argc, char* argv[])
     bool rotref = false;
     bool print_rev_name = false;
     bool print_count = true;
+    bool rev = true;
     unsigned print_num = 0;
 
     if (argc > 1 && (strcmp(argv[1], "help") == 0 || strcmp(argv[1], "--help") == 0))
         return print_help();
 
     int opt;
-    while ((opt = getopt(argc, argv, "1chi:ln:prst:uvVW:x?")) != -1) {
+    while ((opt = getopt(argc, argv, "1chi:ln:prRst:uvVW:x?")) != -1) {
         switch (opt) {
         case '1': print_num = 1; break;
         case 'c': print_count = false; break;
@@ -417,6 +418,7 @@ int main(int argc, char* argv[])
         case 'n': print_num = atoi(optarg); break;
         case 'p': tile_desc = tiles_pentominos; break;
         case 'r': rotref = true; break;
+        case 'R': rev = false; break;
         case 's': vis_param.desc_spaces = true; break;
         case 't': tile_file = optarg; break;
         case 'u': print_rev_name = true; break;
@@ -450,9 +452,10 @@ int main(int argc, char* argv[])
             return 1;
     } else {
         fprintf(stderr, "error: no tile set selected\n");
+        return 1;
     }
 
-    int n = print_solns(*board.get(), tiles, vis, vis_param, print_rev_name, rotref, print_num);
+    int n = print_solns(*board.get(), tiles, vis, vis_param, print_rev_name, rotref, print_num, rev);
     if (print_count)
         printf("%d solutions\n", n);
     return 0;
