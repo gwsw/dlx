@@ -10,6 +10,7 @@ char help1[] = {
 "       -1 = same as -n1\n"
 "       -i = left indent\n"
 "       -r = don't suppress rotations and reflections\n"
+"       -R = don't reverse tiles\n"
 "       -s = print extra spaces for alignment in -l output\n"
 "       -u = use reversed name for reversed tiles in -v output\n"
 "       -W = size of -V cells\n"
