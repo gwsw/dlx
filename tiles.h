@@ -4,6 +4,8 @@
 #include <list>
 #include <string>
 #include <memory>
+#include <algorithm>
+#include <stdexcept>
 #include "linereader.h"
 
 // A board is a collection of square cells in a Cartesian grid;

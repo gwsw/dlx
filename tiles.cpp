@@ -352,7 +352,7 @@ static dlx_t create_dlx_matrix(Board const& board, Tile::Set const& tiles, bool 
     int tile_num = 0;
     for (auto tile : tiles) {
         bool tile_fits = false;
-        auto parity = tile->parity();
+        int parity = tile->parity();
         auto orients = tile->all_orientations(rev);
         for (auto orient : orients) {
             // Place tile shape at every possible px,py on board
@@ -362,7 +362,7 @@ static dlx_t create_dlx_matrix(Board const& board, Tile::Set const& tiles, bool 
             tile_fits = true;
             for (Cell::Coord py = 0; py <= board.height() - orient->height(); ++py)
             for (Cell::Coord px = 0; px <= board.width() - orient->width(); ++px) {
-                if (parity < 0 || ((px+py) % Tile::num_parity) == parity) {
+                if (parity < 0 || (int)((px+py) % Tile::num_parity) == parity) {
                     if (create_dlx_row(dlx, dlx_row, board, px, py, tile_num, orient)) {
                         char tile_char = print_rev_name ? orient->name()[0] : tile->name()[0];
                         PI.add_tile(orient, px, py, tile_char);
