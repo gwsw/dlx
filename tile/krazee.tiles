@@ -1,0 +1,76 @@
+#name=krazee
+
+tile L
+    *
+*****
+parity 1
+end
+
+tile G
+*****
+    *
+parity 1
+end
+
+tile V
+***
+*
+*
+parity 1
+end
+
+tile U
+****
+*
+*
+parity 0
+end
+
+tile K
+****
+*
+*
+parity 0
+end
+
+tile C
+**
+*
+parity 0
+end
+
+tile P
+****
+  **
+parity 0
+end
+
+tile Q
+*****
+**
+parity 1
+end
+
+tile B
+***
+**
+parity 0
+end
+
+tile I
+***
+parity 0
+end
+
+tile W
+**
+ **
+  *
+parity 0
+end
+
+tile N
+**
+ ****
+parity 1
+end
