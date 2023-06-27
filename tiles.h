@@ -140,11 +140,13 @@ private:
 class Tile : public Shape {
 public:
     typedef std::list<std::shared_ptr<Tile> > Set;
-    explicit Tile() : Shape("") {}
-    explicit Tile(Tile const& tile) : Shape(tile), rev_name_(tile.rev_name()) {}
-    explicit Tile(std::string const& name) : Shape(name) {}
-    explicit Tile(std::string const& name, Shape const& shape) : Shape(shape, name) {}
+    explicit Tile() : Shape(""), parity_(-1) {}
+    explicit Tile(Tile const& tile) : Shape(tile), rev_name_(tile.rev_name()), parity_(-1) {}
+    explicit Tile(std::string const& name, int parity = -1) : Shape(name), parity_(parity) {}
+    explicit Tile(std::string const& name, Shape const& shape, int parity = -1) : Shape(shape, name), parity_(parity) {}
     std::string rev_name() const { return rev_name_; }
+    int parity() const { return parity_; }
+    enum { num_parity = 2 };
 
     // Return a list of all orientations of this Tile.
     std::list<std::shared_ptr<Shape> > all_orientations(bool rev = true) const {
@@ -182,6 +184,9 @@ protected:
     // Parse "tile NAME" line.
     bool parse_tile_line(std::string const& line);
 
+    // Parse "parity NUM" line.
+    int parse_parity_line(std::string const& line);
+
     // Add a Shape to a list, unless an identical Shape is already in the list.
     static void add_unique(std::list<std::shared_ptr<Shape> >& list, Shape const& shape) {
         for (auto lshape : list)
@@ -193,6 +198,7 @@ protected:
 private:
     std::string rev_name_;
     enum class RevType { None, RevCase, AppendR } rev_type_ = RevType::RevCase;
+    int parity_;
 };
 
 // ----------------------------------------------------------------

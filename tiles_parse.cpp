@@ -31,11 +31,25 @@ bool Tile::parse(LineReader& rd) {
         } else if (line.substr(0,5) == "tile ") { // start of Tile descriptor
             if (!parse_tile_line(line))
                 return false;
+        } else if (line.substr(0,7) == "parity ") {
+            parity_ = parse_parity_line(line);
         } else if (!parse_shape_line(line, y++)) { // add row of Cells to this Tile
             fprintf(stderr, "error: invalid line in tile file: %s\n", line.c_str());
             return false;
         }
     }
+}
+
+// ----------------------------------------------------------------
+int Tile::parse_parity_line(std::string const& line) {
+    const char* num = line.substr(7).c_str();
+    const char* p = num;
+    auto parity = strtoul(num, (char**) &p, 0);
+    if (p == num) {
+        fprintf(stderr, "error: invalid line in tile file: %s\n", line.c_str());
+        return -1;
+    }
+    return parity;
 }
 
 // ----------------------------------------------------------------
