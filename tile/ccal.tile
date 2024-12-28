@@ -1,0 +1,59 @@
+#name=caesars_calendar
+# 
+
+tile L
+*
+*
+*
+**
+end
+
+tile N
+.*
+**
+*
+*
+end
+
+tile P
+**
+**
+*
+end
+
+tile T
+***
+.*
+.*
+end
+
+tile U
+*.*
+***
+end
+
+tile V
+*
+*
+***
+end
+
+tile Z
+**
+.*
+.**
+end
+
+tile S
+.**
+**
+end
+
+tile I
+****
+end
+
+tile M
+***
+*
+end
